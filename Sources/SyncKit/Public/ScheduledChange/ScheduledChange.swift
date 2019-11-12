@@ -1,5 +1,5 @@
 
-public struct ScheduledChange {
+public struct ScheduledChange: Hashable {
 
     public enum Operation {
         case createOrModify

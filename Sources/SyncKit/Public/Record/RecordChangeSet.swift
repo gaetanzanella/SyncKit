@@ -4,9 +4,10 @@ public struct RecordChangeset {
     public var recordsToSave: [Record]
     public var recordIDsToDelete: [Record.ID]
 
-    public init() {
-        recordsToSave = []
-        recordIDsToDelete = []
+    public init(recordsToSave: [Record] = [],
+                recordIDsToDelete: [Record.ID] = []) {
+        self.recordsToSave = recordsToSave
+        self.recordIDsToDelete = recordIDsToDelete
     }
 
     public mutating func appendRecordToSave(_ record: Record) {

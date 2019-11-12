@@ -1,7 +1,7 @@
 
 public struct InsertedChangeConflit {
-    public let insertedChanges: [ScheduledChange]
-    public let pendingChangeset: [ScheduledChange]
+    public let insertedChangeset: RecordChangeset
+    public let pendingChanges: [ScheduledChange]
 }
 
 public struct InsertedChangeConflictSolution {

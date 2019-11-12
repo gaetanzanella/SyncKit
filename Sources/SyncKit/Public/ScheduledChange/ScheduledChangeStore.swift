@@ -1,10 +1,7 @@
 
-public enum ScheduledChangeState {
-    case pending, processing
-}
-
 public protocol ScheduledChangeStore {
-    func changes(in state: ScheduledChangeState) -> [ScheduledChange]
-    func mark(_ changes: [ScheduledChange], as state: ScheduledChangeState)
+    func storedChanges() -> [ScheduledChange]
+    func changesCount() -> Int
+    func store(_ changes: [ScheduledChange])
     func purge(_ changes: [ScheduledChange])
 }
