@@ -18,6 +18,8 @@ public struct ScheduledChangeBatch {
         self.changes = changes
     }
 
+    // MARK: - Filters by name
+
     public func containsChanges(for name: Record.Name) -> Bool {
         return changes.contains(where: { $0.recordID.recordName == name })
     }
@@ -30,6 +32,8 @@ public struct ScheduledChangeBatch {
         return changes.filter { $0.recordID.recordName == name }
     }
 
+    // MARK: - Filters by record ID
+
     public func containsChanges(for recordID: Record.ID) -> Bool {
         return changes.contains(where: { $0.recordID == recordID })
     }
@@ -40,5 +44,19 @@ public struct ScheduledChangeBatch {
 
     public func changes(for recordID: Record.ID) -> [ScheduledChange] {
         return changes.filter { $0.recordID == recordID }
+    }
+
+    // MARK: - Filters by operation
+
+    public func containsChanges(for operation: ScheduledChange.Operation) -> Bool {
+        return changes.contains(where: { $0.operation == operation })
+    }
+
+    public func change(for operation: ScheduledChange.Operation) -> ScheduledChange? {
+        return changes.first { $0.operation == operation }
+    }
+
+    public func changes(for operation: ScheduledChange.Operation) -> [ScheduledChange] {
+        return changes.filter { $0.operation == operation }
     }
 }

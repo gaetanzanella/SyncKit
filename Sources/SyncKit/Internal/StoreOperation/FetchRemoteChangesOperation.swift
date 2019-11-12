@@ -8,6 +8,7 @@ class FetchRemoteChangesOperation: AsynchronousOperation {
     let conflictResolver: ScheduledChangeConflictResolver
     let persistentStore: PersistentStore
     let remoteStore: RemoteStore
+    let completion: (Result<Void, Error>) -> Void
 
     private let internalQueue = DispatchQueue(label: "fetch_remote_changes_queue")
 
@@ -15,12 +16,14 @@ class FetchRemoteChangesOperation: AsynchronousOperation {
          changeStore: ScheduledChangeStore,
          conflictResolver: ScheduledChangeConflictResolver,
          persistentStore: PersistentStore,
-         remoteStore: RemoteStore) {
+         remoteStore: RemoteStore,
+         completion: @escaping (Result<Void, Error>) -> Void) {
         self.strategy = strategy
         self.changeStore = changeStore
         self.conflictResolver = conflictResolver
         self.persistentStore = persistentStore
         self.remoteStore = remoteStore
+        self.completion = completion
     }
 
     // MARK: - AsynchronousOperation
@@ -36,6 +39,7 @@ class FetchRemoteChangesOperation: AsynchronousOperation {
                 },
                 completion: { [weak self] result in
                     strategy.finalize()
+                    self?.completion(result)
                     self?.finish()
                 }
             )

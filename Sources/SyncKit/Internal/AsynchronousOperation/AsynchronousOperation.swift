@@ -4,6 +4,8 @@ import Foundation
 // Inspirated by https://developer.apple.com/videos/play/wwdc2015/226/
 class AsynchronousOperation: Operation {
 
+    var startBlock: (() -> Void)?
+
     @objc private class func keyPathsForValuesAffectingIsReady() -> Set<String> {
         return ["state"]
     }
@@ -73,6 +75,7 @@ class AsynchronousOperation: Operation {
         if isCancelled {
             finish()
         } else {
+            startBlock?()
             execute()
         }
     }

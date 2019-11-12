@@ -10,6 +10,8 @@ public class SynchronizationContext {
     private let scheduledChangeStore: ScheduledChangeStore
     private let conflictResolver: ScheduledChangeConflictResolver
 
+    private var monitors: [SynchronizationMonitor] = []
+
     private let insertionQueue = DispatchQueue(label: "changeset_assertion_queue")
     private lazy var operationQueue = makeOperationQueue()
 
@@ -19,10 +21,14 @@ public class SynchronizationContext {
                 persistentStore: PersistentStore,
                 scheduledChangeStore: ScheduledChangeStore,
                 conflictResolver: ScheduledChangeConflictResolver) {
+        let threadSafeChangeStore = ThreadSafeScheduledChangeStore(store: scheduledChangeStore)
         self.remoteStore = remoteStore
         self.persistentStore = persistentStore
-        self.scheduledChangeStore = ThreadSafeScheduledChangeStore(store: scheduledChangeStore)
+        self.scheduledChangeStore = threadSafeChangeStore
         self.conflictResolver = conflictResolver
+        threadSafeChangeStore.changeUpdateHandler = { [ weak self] count in
+            self?.notifyMonitors { $0.notifyPendingChangesCountUpdate(count) }
+        }
     }
 
     // MARK: - Public methods
@@ -34,8 +40,17 @@ public class SynchronizationContext {
             changeStore: scheduledChangeStore,
             conflictResolver: conflictResolver,
             persistentStore: persistentStore,
-            remoteStore: remoteStore
+            remoteStore: remoteStore,
+            completion: { [weak self] result in
+                self?.notifyIfErrorCompletion(result, completion)
+            }
         )
+        operation.startBlock = { [weak self] in
+            self?.notify(.fetchingChanges)
+        }
+        operation.completionBlock = { [weak self] in
+            self?.notify(.pending)
+        }
         operationQueue.addOperation(operation)
     }
 
@@ -46,8 +61,17 @@ public class SynchronizationContext {
             resolver: conflictResolver,
             changeStore: scheduledChangeStore,
             persistentStore: persistentStore,
-            remoteStore: remoteStore
+            remoteStore: remoteStore,
+            completion: { [weak self] result in
+                self?.notifyIfErrorCompletion(result, completion)
+            }
         )
+        operation.startBlock = { [weak self] in
+            self?.notify(.uploadingChanges)
+        }
+        operation.completionBlock = { [weak self] in
+            self?.notify(.pending)
+        }
         operationQueue.addOperation(operation)
     }
 
@@ -72,6 +96,10 @@ public class SynchronizationContext {
         persistentStore.perform(changeset, completion: completion)
     }
 
+    public func add(_ monitor: SynchronizationMonitor) {
+        monitors.append(monitor)
+    }
+
     // MARK: - Private
 
     private func handleChangesetDownload(changeset: RecordChangeset) {
@@ -82,6 +110,25 @@ public class SynchronizationContext {
         let solution = conflictResolver.resolve(conflit)
         scheduledChangeStore.purge(solution.pendingChangesToCancel)
         persistentStore.perform(solution.newChangesToPersist) { _ in }
+    }
+
+    private func notifyIfErrorCompletion(_ result: Result<Void, Error>,
+                                         _ completion: @escaping (Result<Void, Error>) -> Void) {
+        switch result {
+        case let .failure(error):
+            notifyMonitors { $0.notify(error) }
+        case .success:
+            break
+        }
+        completion(result)
+    }
+
+    private func notify(_ activity: SynchronizationContextActivity) {
+        notifyMonitors { $0.notify(activity) }
+    }
+
+    private func notifyMonitors(handler: (SynchronizationMonitor) -> Void) {
+        monitors.forEach(handler)
     }
 
     private func makeOperationQueue() -> OperationQueue {

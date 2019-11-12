@@ -9,6 +9,8 @@ class UploadPendingChangeOperation: AsynchronousOperation {
     let persistentStore: PersistentStore
     let remoteStore: RemoteStore
 
+    let completion: (Result<Void, Error>) -> Void
+
     private let internalQueue = DispatchQueue(label: "upload_pending_changes_queue")
 
     // MARK: - Life Cycle
@@ -17,12 +19,14 @@ class UploadPendingChangeOperation: AsynchronousOperation {
          resolver: ScheduledChangeConflictResolver,
          changeStore: ScheduledChangeStore,
          persistentStore: PersistentStore,
-         remoteStore: RemoteStore) {
+         remoteStore: RemoteStore,
+         completion: @escaping (Result<Void, Error>) -> Void) {
         self.strategy = strategy
         self.resolver = resolver
         self.changeStore = changeStore
         self.persistentStore = persistentStore
         self.remoteStore = remoteStore
+        self.completion = completion
     }
 
     // MARK: - Operation
@@ -38,6 +42,7 @@ class UploadPendingChangeOperation: AsynchronousOperation {
                 },
                 completion: { [weak self] result in
                     strategy.finalize()
+                    self?.completion(result)
                     self?.finish()
                 }
             )
@@ -49,7 +54,7 @@ class UploadPendingChangeOperation: AsynchronousOperation {
     private func uploadChanges(batch: ScheduledChangeBatch,
                                nextBatchBlock: @escaping (ScheduledChangeBatch) -> ScheduledChangeBatch?,
                                completion: @escaping (Result<Void, Error>) -> Void) {
-        changeset(for: batch.changes) { [weak self] result in
+        changeset(for: batch) { [weak self] result in
             guard let self = self else { return }
             self.internalQueue.async {
                 switch result {
@@ -69,10 +74,10 @@ class UploadPendingChangeOperation: AsynchronousOperation {
         }
     }
 
-    private func changeset(for changes: [ScheduledChange],
+    private func changeset(for batch: ScheduledChangeBatch,
                            completion: @escaping (Result<RecordChangeset, Error>) -> Void) {
-        let recordIDsToModify = changes.filter({ $0.operation == .createOrModify }).map({ $0.recordID })
-        let recordIDsToDelete = changes.filter({ $0.operation == .delete }).map({ $0.recordID })
+        let recordIDsToModify = batch.changes(for: .createOrModify).map({ $0.recordID })
+        let recordIDsToDelete = batch.changes(for: .delete).map({ $0.recordID })
         persistentStore.searchRecords(with: recordIDsToModify) { [weak self] result in
             guard let self = self else { return }
             self.internalQueue.async {
