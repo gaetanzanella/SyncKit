@@ -1,18 +1,13 @@
 
 import Foundation
 
-public class SynchronizationContext<
-    Record,
-    Store: PersistentStore,
-    ChangeStore: ScheduledChangeStore,
-    Resolver: ScheduledChangeConflictResolver
-> where ChangeStore.ID == Record.ID, Resolver.Rec == Record, Store.R == Record {
+public class SynchronizationContext<Dependency: SynchronizationDependency> {
 
     // MARK: - Private properties
 
-    private let persistentStore: Store
-    private let scheduledChangeStore: ThreadSafeScheduledChangeStore<ChangeStore>
-    private let conflictResolver: Resolver
+    private let persistentStore: Dependency.Store
+    private let scheduledChangeStore: ThreadSafeScheduledChangeStore<Dependency.ChangeStore>
+    private let conflictResolver: Dependency.Resolver
 
     private var monitors: [SynchronizationMonitor] = []
 
@@ -21,13 +16,11 @@ public class SynchronizationContext<
 
     // MARK: - Life Cycle
 
-    public init(persistentStore: Store,
-                scheduledChangeStore: ChangeStore,
-                conflictResolver: Resolver) {
-        let threadSafeChangeStore = ThreadSafeScheduledChangeStore(store: scheduledChangeStore)
-        self.persistentStore = persistentStore
+    public init(dependency: Dependency) {
+        let threadSafeChangeStore = ThreadSafeScheduledChangeStore(store: dependency.scheduledChangeStore)
+        self.persistentStore = dependency.persistentStore
         self.scheduledChangeStore = threadSafeChangeStore
-        self.conflictResolver = conflictResolver
+        self.conflictResolver = dependency.conflictResolver
         threadSafeChangeStore.changeUpdateHandler = { [ weak self] count in
             self?.notifyMonitors { $0.notifyPendingChangesCountUpdate(count) }
         }

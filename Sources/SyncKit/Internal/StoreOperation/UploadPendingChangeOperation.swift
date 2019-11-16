@@ -5,7 +5,7 @@ class UploadPendingChangeOperation<Record,
     ChangeStore: ScheduledChangeStore,
     Resolver: ScheduledChangeConflictResolver,
     Store: PersistentStore>: SynchronizationOperation, UploadPendingChangesTaskContext
-    where ChangeStore.ID == Record.ID, Resolver.Rec == Record, Store.R == Record {
+    where ChangeStore.ID == Record.ID, Resolver.Rec == Record, Store.Rec == Record {
 
     let task: UploadPendingChangesTask
     let changeStore: ChangeStore

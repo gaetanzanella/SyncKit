@@ -5,7 +5,7 @@ class FetchRemoteChangesOperation<Record,
     ChangeStore: ScheduledChangeStore,
     Resolver: ScheduledChangeConflictResolver,
     RecordStore: PersistentStore>: SynchronizationOperation, DownloadRemoteChangesContext
-    where Record.ID == ChangeStore.ID, Resolver.Rec == Record, RecordStore.R == Record {
+    where Record.ID == ChangeStore.ID, Resolver.Rec == Record, RecordStore.Rec == Record {
 
     let task: DownloadRemoteChangesTask
     let changeStore: ChangeStore

@@ -5,7 +5,7 @@ class InsertChangesetOperation<
     Record,
     ChangeStore: ScheduledChangeStore,
     Store: PersistentStore>: SynchronizationOperation, ScheduleChangesetTaskContext
-    where ChangeStore.ID == Record.ID, Store.R == Record {
+    where ChangeStore.ID == Record.ID, Store.Rec == Record {
 
     private let task: ScheduleChangesetTask
     private let changeStore: ChangeStore
