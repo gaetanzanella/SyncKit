@@ -1,13 +1,18 @@
 
 import Foundation
 
-public class SynchronizationContext {
+public class SynchronizationContext<
+    Record,
+    Store: PersistentStore,
+    ChangeStore: ScheduledChangeStore,
+    Resolver: ScheduledChangeConflictResolver
+> where ChangeStore.ID == Record.ID, Resolver.Rec == Record, Store.R == Record {
 
     // MARK: - Private properties
 
-    private let persistentStore: PersistentStore
-    private let scheduledChangeStore: ScheduledChangeStore
-    private let conflictResolver: ScheduledChangeConflictResolver
+    private let persistentStore: Store
+    private let scheduledChangeStore: ThreadSafeScheduledChangeStore<ChangeStore>
+    private let conflictResolver: Resolver
 
     private var monitors: [SynchronizationMonitor] = []
 
@@ -16,9 +21,9 @@ public class SynchronizationContext {
 
     // MARK: - Life Cycle
 
-    public init(persistentStore: PersistentStore,
-                scheduledChangeStore: ScheduledChangeStore,
-                conflictResolver: ScheduledChangeConflictResolver) {
+    public init(persistentStore: Store,
+                scheduledChangeStore: ChangeStore,
+                conflictResolver: Resolver) {
         let threadSafeChangeStore = ThreadSafeScheduledChangeStore(store: scheduledChangeStore)
         self.persistentStore = persistentStore
         self.scheduledChangeStore = threadSafeChangeStore

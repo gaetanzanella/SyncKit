@@ -1,10 +1,5 @@
 
-struct PersistentScheduledChange: Codable {
-
-    struct ID: Codable {
-        let identifier: String
-        let name: String
-    }
+struct PersistentScheduledChange<ID: Codable>: Codable {
 
     enum Operation: String, Codable {
         case createOrModify, delete

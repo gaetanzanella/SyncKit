@@ -1,62 +1,48 @@
 
-public struct ScheduledChange: Hashable {
+public struct ScheduledChange<ID: RecordID>: Hashable {
 
     public enum Operation {
         case createOrModify
         case delete
     }
 
-    public let recordID: Record.ID
+    public let recordID: ID
     public let operation: Operation
 }
 
-public struct ScheduledChangeBatch {
+public struct ScheduledChangeBatch<ID: RecordID> {
 
-    public let changes: [ScheduledChange]
+    public let changes: [ScheduledChange<ID>]
 
-    public init(_ changes: [ScheduledChange]) {
+    public init(_ changes: [ScheduledChange<ID>]) {
         self.changes = changes
-    }
-
-    // MARK: - Filters by name
-
-    public func containsChanges(for name: Record.Name) -> Bool {
-        return changes.contains(where: { $0.recordID.recordName == name })
-    }
-
-    public func change(for name: Record.Name) -> ScheduledChange? {
-        return changes.first { $0.recordID.recordName == name }
-    }
-
-    public func changes(for name: Record.Name) -> [ScheduledChange] {
-        return changes.filter { $0.recordID.recordName == name }
     }
 
     // MARK: - Filters by record ID
 
-    public func containsChanges(for recordID: Record.ID) -> Bool {
+    public func containsChanges(for recordID: ID) -> Bool {
         return changes.contains(where: { $0.recordID == recordID })
     }
 
-    public func change(for recordID: Record.ID) -> ScheduledChange? {
+    public func change(for recordID: ID) -> ScheduledChange<ID>? {
         return changes.first { $0.recordID == recordID }
     }
 
-    public func changes(for recordID: Record.ID) -> [ScheduledChange] {
+    public func changes(for recordID: ID) -> [ScheduledChange<ID>] {
         return changes.filter { $0.recordID == recordID }
     }
 
     // MARK: - Filters by operation
 
-    public func containsChanges(for operation: ScheduledChange.Operation) -> Bool {
+    public func containsChanges(for operation: ScheduledChange<ID>.Operation) -> Bool {
         return changes.contains(where: { $0.operation == operation })
     }
 
-    public func change(for operation: ScheduledChange.Operation) -> ScheduledChange? {
+    public func change(for operation: ScheduledChange<ID>.Operation) -> ScheduledChange<ID>? {
         return changes.first { $0.operation == operation }
     }
 
-    public func changes(for operation: ScheduledChange.Operation) -> [ScheduledChange] {
+    public func changes(for operation: ScheduledChange<ID>.Operation) -> [ScheduledChange<ID>] {
         return changes.filter { $0.operation == operation }
     }
 }

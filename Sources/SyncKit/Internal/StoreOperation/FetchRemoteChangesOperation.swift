@@ -1,19 +1,23 @@
 
 import Foundation
 
-class FetchRemoteChangesOperation: SynchronizationOperation, DownloadRemoteChangesContext {
+class FetchRemoteChangesOperation<Record,
+    ChangeStore: ScheduledChangeStore,
+    Resolver: ScheduledChangeConflictResolver,
+    RecordStore: PersistentStore>: SynchronizationOperation, DownloadRemoteChangesContext
+    where Record.ID == ChangeStore.ID, Resolver.Rec == Record, RecordStore.R == Record {
 
     let task: DownloadRemoteChangesTask
-    let changeStore: ScheduledChangeStore
-    let conflictResolver: ScheduledChangeConflictResolver
-    let persistentStore: PersistentStore
+    let changeStore: ChangeStore
+    let conflictResolver: Resolver
+    let persistentStore: RecordStore
 
     private let internalQueue = DispatchQueue(label: "fetch_remote_changes_queue")
 
     init(task: DownloadRemoteChangesTask,
-         changeStore: ScheduledChangeStore,
-         conflictResolver: ScheduledChangeConflictResolver,
-         persistentStore: PersistentStore) {
+         changeStore: ChangeStore,
+         conflictResolver: Resolver,
+         persistentStore: RecordStore) {
         self.task = task
         self.changeStore = changeStore
         self.conflictResolver = conflictResolver
@@ -32,17 +36,17 @@ class FetchRemoteChangesOperation: SynchronizationOperation, DownloadRemoteChang
 
     // MARK: - DownloadRemoteChangesContext
 
-    func didDownloadChangeset(_ changeset: RecordChangeset) {
+    func didDownloadChangeset(_ changeset: RecordChangeset<Record>) {
         internalQueue.async { [weak self] in
             guard let self = self else { return }
             do {
                 let conflict = FetchedChangeConflit(
                     newChangeset: changeset,
-                    pendingChanges: self.changeStore.storedChanges()
+                    pendingChanges: ScheduledChangeBatch(self.changeStore.storedChanges())
                 )
                 let solution = self.conflictResolver.resolve(conflict)
                 try self.persistentStore.perform(solution.newChangesToPersist)
-                self.changeStore.purge(solution.pendingChangesToCancel)
+                self.changeStore.purge(solution.pendingChangesToCancel.changes)
             } catch {
                 self.finish(with: error)
             }

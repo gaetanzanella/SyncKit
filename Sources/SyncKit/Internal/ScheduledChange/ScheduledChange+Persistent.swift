@@ -11,33 +11,23 @@ extension ScheduledChange.Operation {
     }
 }
 
-extension ScheduledChange {
+extension ScheduledChange where ID: Codable {
 
-    func toPersistentChange() -> PersistentScheduledChange {
+    func toPersistentChange() -> PersistentScheduledChange<ID> {
         PersistentScheduledChange(
-            recordId: recordID.toPersistentID(),
+            recordId: recordID,
             operation: operation.toPersistentOperation()
         )
     }
 
     var storingKey: String {
-        "\(recordID.recordName)_\(recordID.identifier)_\(operation.storingKey)"
+        "\(recordID.storingKey)_\(operation.storingKey)"
     }
 }
 
-extension Record.ID {
+extension ScheduledChange.Operation where ID: Codable {
 
-    func toPersistentID() -> PersistentScheduledChange.ID {
-        PersistentScheduledChange.ID(
-            identifier: identifier,
-            name: recordName
-        )
-    }
-}
-
-extension ScheduledChange.Operation {
-
-    func toPersistentOperation() -> PersistentScheduledChange.Operation {
+    func toPersistentOperation() -> PersistentScheduledChange<ID>.Operation {
         switch self {
         case .createOrModify:
             return .createOrModify
@@ -47,29 +37,19 @@ extension ScheduledChange.Operation {
     }
 }
 
-extension PersistentScheduledChange {
+extension PersistentScheduledChange where ID: RecordID {
 
-    func toChange() -> ScheduledChange {
+    func toChange() -> ScheduledChange<ID> {
         ScheduledChange(
-            recordID: recordId.toID(),
+            recordID: recordId,
             operation: operation.toOperation()
         )
     }
 }
 
-extension PersistentScheduledChange.ID {
+extension PersistentScheduledChange.Operation where ID: RecordID {
 
-    func toID() -> Record.ID {
-        Record.ID(
-            identifier: identifier,
-            recordName: name
-        )
-    }
-}
-
-extension PersistentScheduledChange.Operation {
-
-    func toOperation() -> ScheduledChange.Operation {
+    func toOperation() -> ScheduledChange<ID>.Operation {
         switch self {
         case .createOrModify:
             return .createOrModify

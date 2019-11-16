@@ -1,7 +1,10 @@
 
 public protocol ScheduledChangeStore {
-    func storedChanges() -> [ScheduledChange]
+
+    associatedtype ID: RecordID
+
+    func storedChanges() -> [ScheduledChange<ID>]
     func changesCount() -> Int
-    func store(_ changes: [ScheduledChange])
-    func purge(_ changes: [ScheduledChange])
+    func store(_ changes: [ScheduledChange<ID>])
+    func purge(_ changes: [ScheduledChange<ID>])
 }

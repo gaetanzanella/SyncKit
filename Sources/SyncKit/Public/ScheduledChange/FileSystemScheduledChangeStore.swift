@@ -1,7 +1,7 @@
 
 import Foundation
 
-public class FileSystemScheduledChangeStore: ScheduledChangeStore {
+public class FileSystemScheduledChangeStore<ID: RecordID>: ScheduledChangeStore where ID: Codable {
 
     // MARK: - Public properties
 
@@ -31,8 +31,8 @@ public class FileSystemScheduledChangeStore: ScheduledChangeStore {
 
     // MARK: - ScheduledChangeStore
 
-    public func storedChanges() -> [ScheduledChange] {
-        changeDictionary.allValues(PersistentScheduledChange.self).map {
+    public func storedChanges() -> [ScheduledChange<ID>] {
+        changeDictionary.allValues(PersistentScheduledChange<ID>.self).map {
             $0.toChange()
         }
     }
@@ -41,13 +41,13 @@ public class FileSystemScheduledChangeStore: ScheduledChangeStore {
         return changeDictionary.count()
     }
 
-    public func store(_ changes: [ScheduledChange]) {
+    public func store(_ changes: [ScheduledChange<ID>]) {
         changes.forEach {
             changeDictionary[$0.storingKey] = $0.toPersistentChange()
         }
     }
 
-    public func purge(_ changes: [ScheduledChange]) {
+    public func purge(_ changes: [ScheduledChange<ID>]) {
         changes.forEach {
             changeDictionary.removeValue(forKey: $0.storingKey)
         }

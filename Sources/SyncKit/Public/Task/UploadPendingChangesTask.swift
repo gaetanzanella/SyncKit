@@ -1,7 +1,10 @@
 
 public protocol UploadPendingChangesTaskContext {
-    func pendingChanges() -> [ScheduledChange]
-    func didStartUploading(_ changes: [ScheduledChange])
+
+    associatedtype ID: RecordID
+
+    func pendingChanges() -> ScheduledChangeBatch<ID>
+    func didStartUploading(_ batch: ScheduledChangeBatch<ID>)
     func didFinishUploading()
     func didFinishUploading(with error: Error)
     func finish()
@@ -9,5 +12,5 @@ public protocol UploadPendingChangesTaskContext {
 }
 
 public protocol UploadPendingChangesTask {
-    func execute(using context: UploadPendingChangesTaskContext)
+    func execute<Context: UploadPendingChangesTaskContext>(using context: Context)
 }

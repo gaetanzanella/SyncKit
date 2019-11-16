@@ -1,20 +1,20 @@
 
-public struct RecordChangeset {
+public struct RecordChangeset<R: Record> {
 
-    public var recordsToSave: [Record]
-    public var recordIDsToDelete: [Record.ID]
+    public var recordsToSave: [R]
+    public var recordIDsToDelete: [R.ID]
 
-    public init(recordsToSave: [Record] = [],
-                recordIDsToDelete: [Record.ID] = []) {
+    public init(recordsToSave: [R] = [],
+                recordIDsToDelete: [R.ID] = []) {
         self.recordsToSave = recordsToSave
         self.recordIDsToDelete = recordIDsToDelete
     }
 
-    public mutating func appendRecordToSave(_ record: Record) {
+    public mutating func appendRecordToSave(_ record: R) {
         recordsToSave.append(record)
     }
 
-    public mutating func appendRecordIDToSave(_ recordId: Record.ID) {
+    public mutating func appendRecordIDToSave(_ recordId: R.ID) {
         recordIDsToDelete.append(recordId)
     }
 }
