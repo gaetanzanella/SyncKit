@@ -1,120 +1,69 @@
 
 import Foundation
 
-class UploadPendingChangeOperation: AsynchronousOperation {
+class UploadPendingChangeOperation: SynchronizationOperation, UploadPendingChangesTaskContext {
 
-    let strategy: UploadPendingChangesStrategy
-    let resolver: ScheduledChangeConflictResolver
+    let task: UploadPendingChangesTask
     let changeStore: ScheduledChangeStore
+    let resolver: ScheduledChangeConflictResolver
     let persistentStore: PersistentStore
-    let remoteStore: RemoteStore
-
-    let completion: (Result<Void, Error>) -> Void
 
     private let internalQueue = DispatchQueue(label: "upload_pending_changes_queue")
 
+    private var _pendingChanges: [ScheduledChange] = []
+    private var _processingChanges: [ScheduledChange] = []
+
     // MARK: - Life Cycle
 
-    init(strategy: UploadPendingChangesStrategy,
+    init(task: UploadPendingChangesTask,
          resolver: ScheduledChangeConflictResolver,
          changeStore: ScheduledChangeStore,
-         persistentStore: PersistentStore,
-         remoteStore: RemoteStore,
-         completion: @escaping (Result<Void, Error>) -> Void) {
-        self.strategy = strategy
+         persistentStore: PersistentStore) {
+        self.task = task
         self.resolver = resolver
         self.changeStore = changeStore
         self.persistentStore = persistentStore
-        self.remoteStore = remoteStore
-        self.completion = completion
+        super.init(label: .download)
     }
 
     // MARK: - Operation
 
     override func execute() {
         internalQueue.sync {
-            let strategy = self.strategy
-            strategy.prepare(for: changeStore.storedChanges())
-            uploadChanges(
-                batch: strategy.initialBatch(),
-                nextBatchBlock: {
-                    strategy.nextBatch(after: $0)
-                },
-                completion: { [weak self] result in
-                    strategy.finalize()
-                    self?.completion(result)
-                    self?.finish()
-                }
-            )
+            _pendingChanges = changeStore.storedChanges()
+            task.execute(using: self)
+        }
+    }
+
+    // MARK: - UploadPendingChangesContext
+
+    func pendingChanges() -> [ScheduledChange] {
+        return _pendingChanges
+    }
+
+    func didStartUploading(_ changes: [ScheduledChange]) {
+        internalQueue.async { [weak self] in
+            self?._processingChanges = changes
+            self?.changeStore.purge(changes)
+        }
+    }
+
+    func didFinishUploading() {
+        internalQueue.async { [weak self] in
+            self?._processingChanges = []
+        }
+    }
+
+    func didFinishUploading(with error: Error) {
+        internalQueue.async { [weak self] in
+            guard let self = self else { return }
+            let changes = self._processingChanges
+            self._processingChanges = []
+            self.resolveFailedChangeUpload(changes: changes)
         }
     }
 
     // MARK: - Private
-
-    private func uploadChanges(batch: ScheduledChangeBatch,
-                               nextBatchBlock: @escaping (ScheduledChangeBatch) -> ScheduledChangeBatch?,
-                               completion: @escaping (Result<Void, Error>) -> Void) {
-        changeset(for: batch) { [weak self] result in
-            guard let self = self else { return }
-            self.internalQueue.async {
-                switch result {
-                case let .failure(error):
-                    self.resolveFailedChangeUpload(changes: batch.changes)
-                    completion(.failure(error))
-                case let .success(changeset):
-                    self.changeStore.purge(batch.changes)
-                    self.recordProviderSuccessCompletion(
-                        changeset: changeset,
-                        batch: batch,
-                        nextBatchBlock: nextBatchBlock,
-                        completion: completion
-                    )
-                }
-            }
-        }
-    }
-
-    private func changeset(for batch: ScheduledChangeBatch,
-                           completion: @escaping (Result<RecordChangeset, Error>) -> Void) {
-        let recordIDsToModify = batch.changes(for: .createOrModify).map({ $0.recordID })
-        let recordIDsToDelete = batch.changes(for: .delete).map({ $0.recordID })
-        persistentStore.searchRecords(with: recordIDsToModify) { [weak self] result in
-            guard let self = self else { return }
-            self.internalQueue.async {
-                completion(result.map {
-                    RecordChangeset(
-                        recordsToSave: $0, recordIDsToDelete: recordIDsToDelete)
-                    }
-                )
-            }
-        }
-    }
-
-    private func recordProviderSuccessCompletion(changeset: RecordChangeset,
-                                                 batch: ScheduledChangeBatch,
-                                                 nextBatchBlock: @escaping (ScheduledChangeBatch) -> ScheduledChangeBatch?,
-                                                 completion: @escaping (Result<Void, Error>) -> Void) {
-        remoteStore.perform(changeset) { [weak self] remoteResult in
-            guard let self = self else { return }
-            self.internalQueue.async {
-                switch remoteResult {
-                case let .failure(error):
-                    self.resolveFailedChangeUpload(changes: batch.changes)
-                    completion(.failure(error))
-                case .success:
-                    if let newBatch = nextBatchBlock(batch) {
-                        self.uploadChanges(
-                            batch: newBatch,
-                            nextBatchBlock: nextBatchBlock,
-                            completion: completion
-                        )
-                    } else {
-                        completion(.success(()))
-                    }
-                }
-            }
-        }
-    }
 
     private func resolveFailedChangeUpload(changes: [ScheduledChange]) {
         changeStore.purge(changes)

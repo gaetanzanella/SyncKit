@@ -1,115 +1,50 @@
 
 import Foundation
 
-class FetchRemoteChangesOperation: AsynchronousOperation {
+class FetchRemoteChangesOperation: SynchronizationOperation, DownloadRemoteChangesContext {
 
-    let strategy: DownloadRemoteChangesStrategy
+    let task: DownloadRemoteChangesTask
     let changeStore: ScheduledChangeStore
     let conflictResolver: ScheduledChangeConflictResolver
     let persistentStore: PersistentStore
-    let remoteStore: RemoteStore
-    let completion: (Result<Void, Error>) -> Void
 
     private let internalQueue = DispatchQueue(label: "fetch_remote_changes_queue")
 
-    init(strategy: DownloadRemoteChangesStrategy,
+    init(task: DownloadRemoteChangesTask,
          changeStore: ScheduledChangeStore,
          conflictResolver: ScheduledChangeConflictResolver,
-         persistentStore: PersistentStore,
-         remoteStore: RemoteStore,
-         completion: @escaping (Result<Void, Error>) -> Void) {
-        self.strategy = strategy
+         persistentStore: PersistentStore) {
+        self.task = task
         self.changeStore = changeStore
         self.conflictResolver = conflictResolver
         self.persistentStore = persistentStore
-        self.remoteStore = remoteStore
-        self.completion = completion
+        super.init(label: .download)
     }
 
     // MARK: - AsynchronousOperation
 
     override func execute() {
         internalQueue.sync {
-            let strategy = self.strategy
-            strategy.prepare()
-            downloadChanges(
-                named: strategy.initialDownloadedRecordNames(),
-                nextNamesBlock: {
-                    strategy.nextDownloadedRecordNames(after: $0)
-                },
-                completion: { [weak self] result in
-                    strategy.finalize()
-                    self?.completion(result)
-                    self?.finish()
-                }
-            )
+            let task = self.task
+            task.execute(using: self)
         }
     }
 
-    // MARK: - Private
+    // MARK: - DownloadRemoteChangesContext
 
-     private func downloadChanges(named names: [Record.Name],
-                                 nextNamesBlock: @escaping ([Record.Name]) -> [Record.Name]?,
-                                 completion: @escaping (Result<Void, Error>) -> Void) {
-        remoteStore.fetchChanges(forRecordsNamed: names) { [weak self] result in
+    func didDownloadChangeset(_ changeset: RecordChangeset) {
+        internalQueue.async { [weak self] in
             guard let self = self else { return }
-            self.internalQueue.async {
-                switch result {
-                case let .failure(error):
-                    completion(.failure(error))
-                case let .success(changeset):
-                    self.fetchChangesSuccessCompletion(
-                        changeset: changeset,
-                        names: names,
-                        nextNamesBlock: nextNamesBlock,
-                        completion: completion
-                    )
-                }
-            }
-        }
-    }
-
-    private func fetchChangesSuccessCompletion(changeset: RecordChangeset,
-                                               names: [Record.Name],
-                                               nextNamesBlock: @escaping ([Record.Name]) -> [Record.Name]?,
-                                               completion: @escaping (Result<Void, Error>) -> Void) {
-        persistDownloadedRecords(changeset: changeset) { [weak self] result in
-            guard let self = self else { return }
-            self.internalQueue.async {
-                switch result {
-                case let .failure(error):
-                    completion(.failure(error))
-                case .success:
-                    if let nextNames = nextNamesBlock(names) {
-                        self.downloadChanges(
-                            named: nextNames,
-                            nextNamesBlock: nextNamesBlock,
-                            completion: completion
-                        )
-                    } else {
-                        completion(.success(()))
-                    }
-                }
-            }
-        }
-    }
-
-    private func persistDownloadedRecords(changeset: RecordChangeset,
-                                          completion: @escaping (Result<Void, Error>) -> Void) {
-        let conflict = FetchedChangeConflit(
-            newChangeset: changeset,
-            pendingChanges: changeStore.storedChanges()
-        )
-        let solution = conflictResolver.resolve(conflict)
-        persistentStore.perform(solution.newChangesToPersist) { [weak self] result in
-            self?.internalQueue.async {
-                switch result {
-                case let .failure(error):
-                    completion(.failure(error))
-                case .success:
-                    self?.changeStore.purge(solution.pendingChangesToCancel)
-                    completion(.success(()))
-                }
+            do {
+                let conflict = FetchedChangeConflit(
+                    newChangeset: changeset,
+                    pendingChanges: self.changeStore.storedChanges()
+                )
+                let solution = self.conflictResolver.resolve(conflict)
+                try self.persistentStore.perform(solution.newChangesToPersist)
+                self.changeStore.purge(solution.pendingChangesToCancel)
+            } catch {
+                self.finish(with: error)
             }
         }
     }
