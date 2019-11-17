@@ -1,7 +1,7 @@
 
 public protocol PersistentStore {
 
-    associatedtype Rec: Record
+    associatedtype Record: ManagedRecord
 
-    func perform(_ changeset: RecordChangeset<Rec>) throws
+    func perform(_ changeset: RecordChangeset<Record>) throws
 }

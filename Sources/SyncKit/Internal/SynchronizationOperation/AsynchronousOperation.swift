@@ -1,20 +1,8 @@
 
 import Foundation
 
-public class SynchronizationOperation: Operation {
-
-    // MARK: - Public properties
-
-    enum Label {
-        case upload, download, insertion
-    }
-
-    let label: Label
-
-    var startBlock: (() -> Void)?
-    var finishBlock: ((Error?) -> Void)?
-
-    // MARK: - Private properties
+// Inspirated by https://developer.apple.com/videos/play/wwdc2015/226/
+class AsynchronousOperation: Operation {
 
     @objc private class func keyPathsForValuesAffectingIsReady() -> Set<String> {
         return ["state"]
@@ -66,37 +54,30 @@ public class SynchronizationOperation: Operation {
         }
     }
 
-    // MARK: - Life Cycle
-
-    init(label: Label) {
-        self.label = label
-    }
-
     // MARK: - Operation
 
-    public override var isExecuting: Bool {
+    override var isExecuting: Bool {
         return state == .executing
     }
 
-    public override var isReady: Bool {
+    override var isReady: Bool {
         return state == .initialized
     }
 
-    public override var isFinished: Bool {
+    override var isFinished: Bool {
         return state == .finished
     }
 
-    public override final func main() {
+    override final func main() {
         state = .executing
         if isCancelled {
             finish()
         } else {
-            startBlock?()
             execute()
         }
     }
 
-    // MARK: - SynchronizationOperation
+    // MARK: - AsynchronousOperation
 
     func execute() {
         // override
@@ -104,15 +85,6 @@ public class SynchronizationOperation: Operation {
     }
 
     final func finish() {
-        _finish(with: nil)
-    }
-
-    final func finish(with error: Error) {
-        _finish(with: error)
-    }
-
-    private func _finish(with error: Error?) {
         state = .finished
-        finishBlock?(error)
     }
 }

@@ -1,7 +1,7 @@
 
 public protocol ScheduledChangeStore {
 
-    associatedtype ID: RecordID
+    associatedtype ID: ManagedRecordID
 
     func storedChanges() -> [ScheduledChange<ID>]
     func changesCount() -> Int

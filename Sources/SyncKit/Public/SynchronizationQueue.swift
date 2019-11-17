@@ -1,61 +1,51 @@
 
 import Foundation
 
-public class SynchronizationContext<Dependency: SynchronizationDependency> {
+public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyProvider> {
 
     // MARK: - Private properties
 
-    private let persistentStore: Dependency.Store
-    private let scheduledChangeStore: ThreadSafeScheduledChangeStore<Dependency.ChangeStore>
-    private let conflictResolver: Dependency.Resolver
+    private let dependencyProvider: DependencyProviderProxy<DependencyProvider>
 
     private var monitors: [SynchronizationMonitor] = []
 
-    private lazy var insertionQueue = makeOperationQueue()
-    private lazy var operationQueue = makeOperationQueue()
+    private lazy var insertionQueue = makeConcurrentQueue()
+    private lazy var operationQueue = makeSerialQueue()
 
     // MARK: - Life Cycle
 
-    public init(dependency: Dependency) {
-        let threadSafeChangeStore = ThreadSafeScheduledChangeStore(store: dependency.scheduledChangeStore)
-        self.persistentStore = dependency.persistentStore
-        self.scheduledChangeStore = threadSafeChangeStore
-        self.conflictResolver = dependency.conflictResolver
-        threadSafeChangeStore.changeUpdateHandler = { [ weak self] count in
+    public init(dependencyProvider: DependencyProvider) {
+        self.dependencyProvider = DependencyProviderProxy(dependencyProvider)
+        self.dependencyProvider.makeChangeStore().changeUpdateHandler = { [ weak self] count in
             self?.notifyMonitors { $0.notifyPendingChangesCountUpdate(count) }
         }
     }
 
     // MARK: - Public methods
 
-    public func perform(_ task: DownloadRemoteChangesTask,
-                        completion: @escaping (Result<Void, Error>) -> Void) {
+    public func perform<Task: DownloadRemoteChangesTask>(_ task: Task,
+                                                         completion: @escaping (Result<Void, Error>) -> Void) where Task.Record == DependencyProvider.Record {
         let operation = FetchRemoteChangesOperation(
             task: task,
-            changeStore: scheduledChangeStore,
-            conflictResolver: conflictResolver,
-            persistentStore: persistentStore
+            dependencyProvider: dependencyProvider
         )
         schedule(operation, completion: completion)
     }
 
-    public func perform(_ task: UploadPendingChangesTask,
-                        completion: @escaping (Result<Void, Error>) -> Void) {
+    public func perform<Task: UploadPendingChangesTask>(_ task: Task,
+                                                        completion: @escaping (Result<Void, Error>) -> Void) where Task.Record == DependencyProvider.Record {
         let operation = UploadPendingChangeOperation(
             task: task,
-            resolver: conflictResolver,
-            changeStore: scheduledChangeStore,
-            persistentStore: persistentStore
+            dependencyProvider: dependencyProvider
         )
         schedule(operation, completion: completion)
     }
 
-    public func perform(_ task: ScheduleChangesetTask,
-                         completion: @escaping (Result<Void, Error>) -> Void) {
+    public func perform<Task: ScheduleChangesetTask>(_ task: Task,
+                                                     completion: @escaping (Result<Void, Error>) -> Void) where Task.Record == DependencyProvider.Record {
         let operation = InsertChangesetOperation(
             task: task,
-            changeStore: scheduledChangeStore,
-            persistentStore: persistentStore
+            dependencyProvider: dependencyProvider
         )
         schedule(operation, completion: completion)
     }
@@ -110,7 +100,12 @@ public class SynchronizationContext<Dependency: SynchronizationDependency> {
         monitors.forEach(handler)
     }
 
-    private func makeOperationQueue() -> OperationQueue {
+    private func makeConcurrentQueue() -> OperationQueue {
+        let queue = OperationQueue()
+        return queue
+    }
+
+    private func makeSerialQueue() -> OperationQueue {
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 1
         return queue

@@ -1,51 +1,45 @@
 
 import Foundation
 
-class UploadPendingChangeOperation<Record,
-    ChangeStore: ScheduledChangeStore,
-    Resolver: ScheduledChangeConflictResolver,
-    Store: PersistentStore>: SynchronizationOperation, UploadPendingChangesTaskContext
-    where ChangeStore.ID == Record.ID, Resolver.Rec == Record, Store.Rec == Record {
+class UploadPendingChangeOperation<Task: UploadPendingChangesTask, DependencyProvider: SynchronizationDependencyProvider>: SynchronizationOperation, UploadPendingChangesTaskContext where Task.Record == DependencyProvider.Record {
 
-    let task: UploadPendingChangesTask
-    let changeStore: ChangeStore
-    let resolver: Resolver
-    let persistentStore: Store
+    let task: Task
+    let changeStore: DependencyProvider.ChangeStore
+    let resolver: DependencyProvider.ConflictResolver
+    let persistentStore: DependencyProvider.Store
 
     private let internalQueue = DispatchQueue(label: "upload_pending_changes_queue")
 
-    private var _pendingChanges: [ScheduledChange<Record.ID>] = []
-    private var _processingChanges: [ScheduledChange<Record.ID>] = []
+    private var _pendingChanges: [ScheduledChange<Task.Record.ID>] = []
+    private var _processingChanges: [ScheduledChange<Task.Record.ID>] = []
 
     // MARK: - Life Cycle
 
-    init(task: UploadPendingChangesTask,
-         resolver: Resolver,
-         changeStore: ChangeStore,
-         persistentStore: Store) {
+    init(task: Task,
+         dependencyProvider: DependencyProvider) {
         self.task = task
-        self.resolver = resolver
-        self.changeStore = changeStore
-        self.persistentStore = persistentStore
+        self.resolver = dependencyProvider.makeConflictResolver()
+        self.changeStore = dependencyProvider.makeChangeStore()
+        self.persistentStore = dependencyProvider.makePersistentStore()
         super.init(label: .download)
     }
 
     // MARK: - Operation
 
-    override func execute() {
+    override func startTask() {
         internalQueue.sync {
             _pendingChanges = changeStore.storedChanges()
-            task.execute(using: self)
+            task.start(using: self)
         }
     }
 
     // MARK: - UploadPendingChangesContext
 
-    func pendingChanges() -> ScheduledChangeBatch<Record.ID> {
+    func pendingChanges() -> ScheduledChangeBatch<Task.Record.ID> {
         return ScheduledChangeBatch(_pendingChanges)
     }
 
-    func didStartUploading(_ batch: ScheduledChangeBatch<Record.ID>) {
+    func didStartUploading(_ batch: ScheduledChangeBatch<Task.Record.ID>) {
         internalQueue.async { [weak self] in
             self?._processingChanges = batch.changes
             self?.changeStore.purge(batch.changes)
@@ -69,13 +63,13 @@ class UploadPendingChangeOperation<Record,
 
     // MARK: - Private
 
-    private func resolveFailedChangeUpload(changes: [ScheduledChange<Record.ID>]) {
+    private func resolveFailedChangeUpload(changes: [ScheduledChange<Task.Record.ID>]) {
         changeStore.purge(changes)
-        let conflict = FailedChangeConflit<Record>(
+        let conflict = FailedChangeConflit<Task.Record>(
             failedChanges: ScheduledChangeBatch(changes),
             pendingChanges: ScheduledChangeBatch(changeStore.storedChanges())
         )
         let solution = resolver.resolve(conflict)
-        changeStore.store(solution.changesToRestore.changes)
+        changeStore.store(solution.changesToRestore)
     }
 }

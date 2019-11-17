@@ -1,7 +1,7 @@
 
 import Foundation
 
-public class FileSystemScheduledChangeStore<ID: RecordID>: ScheduledChangeStore where ID: Codable {
+public class FileSystemScheduledChangeStore<ID: ManagedRecordID>: ScheduledChangeStore where ID: Codable {
 
     // MARK: - Public properties
 

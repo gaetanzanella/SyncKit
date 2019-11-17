@@ -1,5 +1,5 @@
 
-public struct ScheduledChange<ID: RecordID>: Hashable {
+public struct ScheduledChange<ID: ManagedRecordID>: Hashable {
 
     public enum Operation {
         case createOrModify
@@ -8,11 +8,20 @@ public struct ScheduledChange<ID: RecordID>: Hashable {
 
     public let recordID: ID
     public let operation: Operation
+
+    internal init(recordID: ID, operation: Operation) {
+        self.recordID = recordID
+        self.operation = operation
+    }
 }
 
-public struct ScheduledChangeBatch<ID: RecordID> {
+public struct ScheduledChangeBatch<ID: ManagedRecordID> {
+
+    // MARK: - Public properties
 
     public let changes: [ScheduledChange<ID>]
+
+    // MARK: - Life Cycle
 
     public init(_ changes: [ScheduledChange<ID>]) {
         self.changes = changes

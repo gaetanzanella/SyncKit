@@ -37,7 +37,7 @@ extension ScheduledChange.Operation where ID: Codable {
     }
 }
 
-extension PersistentScheduledChange where ID: RecordID {
+extension PersistentScheduledChange where ID: ManagedRecordID {
 
     func toChange() -> ScheduledChange<ID> {
         ScheduledChange(
@@ -47,7 +47,7 @@ extension PersistentScheduledChange where ID: RecordID {
     }
 }
 
-extension PersistentScheduledChange.Operation where ID: RecordID {
+extension PersistentScheduledChange.Operation where ID: ManagedRecordID {
 
     func toOperation() -> ScheduledChange<ID>.Operation {
         switch self {

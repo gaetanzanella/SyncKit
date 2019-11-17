@@ -1,13 +1,16 @@
 
 public protocol ScheduleChangesetTaskContext {
 
-    associatedtype Rec: Record
+    associatedtype Record: ManagedRecord
 
-    func insert(_ changeset: RecordChangeset<Rec>)
-    func finish()
-    func finish(with error: Error)
+    func didInsert(_ changeset: RecordChangeset<Record>)
+    func endTask()
+    func endTask(with error: Error)
 }
 
 public protocol ScheduleChangesetTask {
-    func execute<Context: ScheduleChangesetTaskContext>(using context: Context)
+
+    associatedtype Record: ManagedRecord
+
+    func start<Context: ScheduleChangesetTaskContext>(using context: Context) where Context.Record == Record
 }
