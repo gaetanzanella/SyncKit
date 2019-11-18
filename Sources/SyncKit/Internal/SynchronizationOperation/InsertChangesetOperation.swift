@@ -1,11 +1,11 @@
 
 import Foundation
 
-class InsertChangesetOperation<Task: ScheduleChangesetTask, DependencyProvider: SynchronizationDependencyProvider>: SynchronizationOperation, ScheduleChangesetTaskContext where Task.Record == DependencyProvider.Record {
+class InsertChangesetOperation<Task: ScheduleLocalChangesetTask, DependencyProvider: SynchronizationDependencyProvider>: SynchronizationOperation, ScheduleLocalChangesetTaskContext where Task.Changeset == DependencyProvider.Changeset {
 
     private let task: Task
     private let changeStore: DependencyProvider.ChangeStore
-    private let persistentStore: DependencyProvider.Store
+    private let persistentStore: DependencyProvider.PersistentStore
 
     private let internalQueue = DispatchQueue(label: "insert_changes_queue")
 
@@ -27,7 +27,7 @@ class InsertChangesetOperation<Task: ScheduleChangesetTask, DependencyProvider: 
 
     // MARK: - InsertChangesetTaskContext
 
-    func didInsert(_ changeset: RecordChangeset<Task.Record>) {
+    func didInsert(_ changeset: Task.Changeset) {
         internalQueue.async {
             do {
                 try self.persistentStore.perform(changeset)

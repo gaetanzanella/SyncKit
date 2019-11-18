@@ -1,12 +1,12 @@
 
 public protocol SynchronizationDependencyProvider {
 
-    associatedtype Record
-    associatedtype ConflictResolver: ScheduledChangeConflictResolver where ConflictResolver.Record == Record
-    associatedtype ChangeStore: ScheduledChangeStore where ChangeStore.ID == Record.ID
-    associatedtype Store: PersistentStore where Store.Record == Record
+    associatedtype Changeset
+    associatedtype ConflictResolver: ChangesetConflictResolver where ConflictResolver.Changeset == Changeset
+    associatedtype ChangeStore: PendingChangeStore where ChangeStore.Change == Changeset.Change
+    associatedtype PersistentStore: LocalPersistentStore where PersistentStore.Changeset == Changeset
 
     func makeConflictResolver() -> ConflictResolver
     func makeChangeStore() -> ChangeStore
-    func makePersistentStore() -> Store
+    func makePersistentStore() -> PersistentStore
 }

@@ -1,11 +1,11 @@
 
-public protocol ManagedRecordID: Hashable {
-    var storingKey: String { get }
+public protocol PendingChange {
+    var storeIdentifier: String { get }
 }
 
-public protocol ManagedRecord {
+public protocol LocalChangeset {
 
-    associatedtype ID: ManagedRecordID
+    associatedtype Change: PendingChange
 
-    var recordID: ID { get }
+    func asRemoteChangeset() -> Change
 }

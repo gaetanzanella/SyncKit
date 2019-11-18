@@ -1,78 +1,78 @@
 
-public struct InsertedChangeConflit<Record: ManagedRecord> {
+public struct InsertedLocalChangesetConflit<Changeset: LocalChangeset> {
 
-    public let insertedChangeset: RecordChangeset<Record>
-    public let pendingChanges: ScheduledChangeBatch<Record.ID>
+    public let insertedChangeset: Changeset
+    public let pendingChanges: [Changeset.Change]
 
-    public init(insertedChangeset: RecordChangeset<Record>,
-                pendingChanges: ScheduledChangeBatch<Record.ID>) {
+    public init(insertedChangeset: Changeset,
+                pendingChanges: [Changeset.Change]) {
         self.insertedChangeset = insertedChangeset
         self.pendingChanges = pendingChanges
     }
 }
 
-public struct InsertedChangeConflictSolution<Record: ManagedRecord> {
+public struct InsertedLocalChangesetConflitSolution<Changeset: LocalChangeset> {
 
-    public let pendingChangesToCancel: [ScheduledChange<Record.ID>]
+    public let pendingChangesToCancel: [Changeset.Change]
 
-    public init(pendingChangesToCancel: [ScheduledChange<Record.ID>]) {
+    public init(pendingChangesToCancel: [Changeset.Change]) {
         self.pendingChangesToCancel = pendingChangesToCancel
     }
 }
 
-public struct FailedChangeConflit<Record: ManagedRecord> {
+public struct FailedPendingChangesUploadConflit<Change: PendingChange> {
 
-    public let failedChanges: ScheduledChangeBatch<Record.ID>
-    public let pendingChanges: ScheduledChangeBatch<Record.ID>
+    public let failedChanges: [Change]
+    public let pendingChanges: [Change]
 
-    public init(failedChanges: ScheduledChangeBatch<Record.ID>,
-                pendingChanges: ScheduledChangeBatch<Record.ID>) {
+    public init(failedChanges: [Change],
+                pendingChanges: [Change]) {
         self.failedChanges = failedChanges
         self.pendingChanges = pendingChanges
     }
 }
 
-public struct FailedChangeConflitSolution<Record: ManagedRecord> {
+public struct FailedPendingChangesUploadConflitSolution<Change: PendingChange> {
 
-    public let changesToRestore: [ScheduledChange<Record.ID>]
+    public let changesToRestore: [Change]
 
-    public init(changesToRestore: [ScheduledChange<Record.ID>]) {
+    public init(changesToRestore: [Change]) {
         self.changesToRestore = changesToRestore
     }
 }
 
-public struct FetchedChangeConflit<Record: ManagedRecord> {
+public struct FetchedLocalChangesetConflit<Changeset: LocalChangeset> {
 
-    public let newChangeset: RecordChangeset<Record>
-    public let pendingChanges: ScheduledChangeBatch<Record.ID>
+    public let newChangeset: Changeset
+    public let pendingChanges: [Changeset.Change]
 
-    public init(newChangeset: RecordChangeset<Record>,
-         pendingChanges: ScheduledChangeBatch<Record.ID>) {
+    public init(newChangeset: Changeset,
+                pendingChanges: [Changeset.Change]) {
         self.newChangeset = newChangeset
         self.pendingChanges = pendingChanges
     }
 }
 
-public struct FetchedChangeConflictSolution<Record: ManagedRecord> {
+public struct FetchedLocalChangesetConflitSolution<Changeset: LocalChangeset> {
 
-    public let newChangesToPersist: RecordChangeset<Record>
-    public let pendingChangesToCancel: [ScheduledChange<Record.ID>]
+    public let newChangesToPersist: Changeset
+    public let pendingChangesToCancel: [Changeset.Change]
 
-    public init(newChangesToPersist: RecordChangeset<Record>,
-         pendingChangesToCancel: [ScheduledChange<Record.ID>]) {
+    public init(newChangesToPersist: Changeset,
+         pendingChangesToCancel: [Changeset.Change]) {
         self.newChangesToPersist = newChangesToPersist
         self.pendingChangesToCancel = pendingChangesToCancel
     }
 }
 
-public protocol ScheduledChangeConflictResolver {
+public protocol ChangesetConflictResolver {
 
-    associatedtype Record: ManagedRecord
+    associatedtype Changeset: LocalChangeset
 
     /// When a new pending change is created, which pending changes to cancel?
-    func resolve(_ conflit: InsertedChangeConflit<Record>) -> InsertedChangeConflictSolution<Record>
+    func resolve(_ conflit: InsertedLocalChangesetConflit<Changeset>) -> InsertedLocalChangesetConflitSolution<Changeset>
     /// When pending changes failed, which ones are still valid?
-    func resolve(_ conflit: FailedChangeConflit<Record>) -> FailedChangeConflitSolution<Record>
+    func resolve(_ conflit: FailedPendingChangesUploadConflit<Changeset.Change>) -> FailedPendingChangesUploadConflitSolution<Changeset.Change>
     /// When new changes are fetched, which pending changes to keep? which fetched changes to persist?
-    func resolve(_ conflit: FetchedChangeConflit<Record>) -> FetchedChangeConflictSolution<Record>
+    func resolve(_ conflit: FetchedLocalChangesetConflit<Changeset>) -> FetchedLocalChangesetConflitSolution<Changeset>
 }

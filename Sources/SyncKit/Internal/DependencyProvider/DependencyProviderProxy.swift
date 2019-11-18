@@ -14,12 +14,12 @@ class DependencyProviderProxy<DependencyProvider: SynchronizationDependencyProvi
 
     // MARK: - SynchronizationDependencyProvider
 
-    typealias Record = DependencyProvider.Record
+    typealias Changeset = DependencyProvider.Changeset
     typealias ConflictResolver = DependencyProvider.ConflictResolver
     typealias ChangeStore = ThreadSafeScheduledChangeStore<DependencyProvider.ChangeStore>
-    typealias Store = DependencyProvider.Store
+    typealias PersistentStore = DependencyProvider.PersistentStore
 
-    func makePersistentStore() -> Store {
+    func makePersistentStore() -> PersistentStore {
         return dependencyProvider.makePersistentStore()
     }
 

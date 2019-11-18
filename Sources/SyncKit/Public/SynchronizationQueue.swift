@@ -1,4 +1,5 @@
 
+import Combine
 import Foundation
 
 public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyProvider> {
@@ -23,8 +24,8 @@ public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyP
 
     // MARK: - Public methods
 
-    public func perform<Task: DownloadRemoteChangesTask>(_ task: Task,
-                                                         completion: @escaping (Result<Void, Error>) -> Void) where Task.Record == DependencyProvider.Record {
+    public func perform<Task: DownloadLocalChangesetTask>(_ task: Task,
+                                                         completion: @escaping (Result<Void, Error>) -> Void) where Task.Changeset == DependencyProvider.Changeset {
         let operation = FetchRemoteChangesOperation(
             task: task,
             dependencyProvider: dependencyProvider
@@ -32,8 +33,8 @@ public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyP
         schedule(operation, completion: completion)
     }
 
-    public func perform<Task: UploadPendingChangesTask>(_ task: Task,
-                                                        completion: @escaping (Result<Void, Error>) -> Void) where Task.Record == DependencyProvider.Record {
+    public func perform<Task: UploadChangesTask>(_ task: Task,
+                                                 completion: @escaping (Result<Void, Error>) -> Void) where Task.Change == DependencyProvider.Changeset.Change {
         let operation = UploadPendingChangeOperation(
             task: task,
             dependencyProvider: dependencyProvider
@@ -41,8 +42,8 @@ public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyP
         schedule(operation, completion: completion)
     }
 
-    public func perform<Task: ScheduleChangesetTask>(_ task: Task,
-                                                     completion: @escaping (Result<Void, Error>) -> Void) where Task.Record == DependencyProvider.Record {
+    public func perform<Task: ScheduleLocalChangesetTask>(_ task: Task,
+                                                     completion: @escaping (Result<Void, Error>) -> Void) where Task.Changeset == DependencyProvider.Changeset {
         let operation = InsertChangesetOperation(
             task: task,
             dependencyProvider: dependencyProvider

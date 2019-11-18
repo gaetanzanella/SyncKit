@@ -1,19 +1,19 @@
 
-public protocol UploadPendingChangesTaskContext {
+public protocol UploadChangesTaskContext {
 
-    associatedtype ID: ManagedRecordID
+    associatedtype Change: PendingChange
 
-    func pendingChanges() -> ScheduledChangeBatch<ID>
-    func didStartUploading(_ batch: ScheduledChangeBatch<ID>)
+    func pendingChanges() -> [Change]
+    func didStartUploading(_ batch: [Change])
     func didFinishUploading()
     func didFinishUploading(with error: Error)
     func endTask()
     func endTask(with error: Error)
 }
 
-public protocol UploadPendingChangesTask {
+public protocol UploadChangesTask {
 
-    associatedtype Record: ManagedRecord
+    associatedtype Change: PendingChange
 
-    func start<Context: UploadPendingChangesTaskContext>(using context: Context) where Context.ID == Record.ID
+    func start<Context: UploadChangesTaskContext>(using context: Context) where Context.Change == Change
 }

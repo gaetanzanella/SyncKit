@@ -1,12 +1,12 @@
 
 import Foundation
 
-class FetchRemoteChangesOperation<Task: DownloadRemoteChangesTask, DependencyProvider: SynchronizationDependencyProvider>: SynchronizationOperation, DownloadRemoteChangesContext where Task.Record == DependencyProvider.Record {
+class FetchRemoteChangesOperation<Task: DownloadLocalChangesetTask, DependencyProvider: SynchronizationDependencyProvider>: SynchronizationOperation, DownloadLocalChangesetContext where Task.Changeset == DependencyProvider.Changeset {
 
     let task: Task
     let resolver: DependencyProvider.ConflictResolver
     let changeStore: DependencyProvider.ChangeStore
-    let persistentStore: DependencyProvider.Store
+    let persistentStore: DependencyProvider.PersistentStore
 
     private let internalQueue = DispatchQueue(label: "fetch_remote_changes_queue")
 
@@ -30,13 +30,13 @@ class FetchRemoteChangesOperation<Task: DownloadRemoteChangesTask, DependencyPro
 
     // MARK: - DownloadRemoteChangesContext
 
-    func didDownloadChangeset(_ changeset: RecordChangeset<Task.Record>) {
+    func didDownloadChangeset(_ changeset: Task.Changeset) {
         internalQueue.async { [weak self] in
             guard let self = self else { return }
             do {
-                let conflict = FetchedChangeConflit(
+                let conflict = FetchedLocalChangesetConflit(
                     newChangeset: changeset,
-                    pendingChanges: ScheduledChangeBatch(self.changeStore.storedChanges())
+                    pendingChanges: self.changeStore.storedChanges()
                 )
                 let solution = self.resolver.resolve(conflict)
                 try self.persistentStore.perform(solution.newChangesToPersist)

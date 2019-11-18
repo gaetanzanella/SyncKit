@@ -1,7 +1,7 @@
 
-public protocol PersistentStore {
+public protocol LocalPersistentStore {
 
-    associatedtype Record: ManagedRecord
+    associatedtype Changeset: LocalChangeset
 
-    func perform(_ changeset: RecordChangeset<Record>) throws
+    func perform(_ changeset: Changeset) throws
 }

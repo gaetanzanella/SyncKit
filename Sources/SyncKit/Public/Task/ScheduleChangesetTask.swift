@@ -1,16 +1,16 @@
 
-public protocol ScheduleChangesetTaskContext {
+public protocol ScheduleLocalChangesetTaskContext {
 
-    associatedtype Record: ManagedRecord
+    associatedtype Changeset: LocalChangeset
 
-    func didInsert(_ changeset: RecordChangeset<Record>)
+    func didInsert(_ changeset: Changeset)
     func endTask()
     func endTask(with error: Error)
 }
 
-public protocol ScheduleChangesetTask {
+public protocol ScheduleLocalChangesetTask {
 
-    associatedtype Record: ManagedRecord
+    associatedtype Changeset: LocalChangeset
 
-    func start<Context: ScheduleChangesetTaskContext>(using context: Context) where Context.Record == Record
+    func start<Context: ScheduleLocalChangesetTaskContext>(using context: Context) where Context.Changeset == Changeset
 }

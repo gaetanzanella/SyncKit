@@ -5,7 +5,7 @@ enum ScheduledChangeStores {
     static let accessQueue = DispatchQueue(label: "change_store_queue", attributes: .concurrent)
 }
 
-class ThreadSafeScheduledChangeStore<Store: ScheduledChangeStore>: ScheduledChangeStore {
+class ThreadSafeScheduledChangeStore<Store: PendingChangeStore>: PendingChangeStore {
 
     let store: Store
 
@@ -21,8 +21,8 @@ class ThreadSafeScheduledChangeStore<Store: ScheduledChangeStore>: ScheduledChan
 
     // MARK: - Private
 
-    func storedChanges() -> [ScheduledChange<Store.ID>] {
-        var changes: [ScheduledChange<Store.ID>] = []
+    func storedChanges() -> [Store.Change] {
+        var changes: [Store.Change] = []
         accessQueue.sync {
             changes = store.storedChanges()
         }
@@ -37,14 +37,14 @@ class ThreadSafeScheduledChangeStore<Store: ScheduledChangeStore>: ScheduledChan
         return count
     }
 
-    func store(_ changes: [ScheduledChange<Store.ID>]) {
+    func store(_ changes: [Store.Change]) {
         accessQueue.sync(flags: .barrier) {
             store.store(changes)
         }
         notifyCountChange()
     }
 
-    func purge(_ changes: [ScheduledChange<Store.ID>]) {
+    func purge(_ changes: [Store.Change]) {
         accessQueue.sync(flags: .barrier) {
             self.store.purge(changes)
         }

@@ -1,17 +1,17 @@
 
-public protocol DownloadRemoteChangesContext {
+public protocol DownloadLocalChangesetContext {
 
-    associatedtype Record: ManagedRecord
+    associatedtype Changeset: LocalChangeset
 
-    func didDownloadChangeset(_ changeset: RecordChangeset<Record>)
+    func didDownloadChangeset(_ changeset: Changeset)
     func endTask()
     func endTask(with error: Error)
 }
 
-public protocol DownloadRemoteChangesTask {
+public protocol DownloadLocalChangesetTask {
 
-    associatedtype Record: ManagedRecord
+    associatedtype Changeset: LocalChangeset
 
-    func start<Context: DownloadRemoteChangesContext>(using context: Context) where Context.Record == Record
+    func start<Context: DownloadLocalChangesetContext>(using context: Context) where Context.Changeset == Changeset
 }
 
