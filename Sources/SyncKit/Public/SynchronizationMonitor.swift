@@ -15,8 +15,6 @@ public class SynchronizationMonitor {
 
     public var errorHandler: ((Error) -> Void)?
 
-    public var pendingChangesUploadErrorHandler: ((Error) -> Void)?
-
     public var pendingChangesCountUpdateHandler: ((Int) -> Void)?
 
     // MARK: - Private properties

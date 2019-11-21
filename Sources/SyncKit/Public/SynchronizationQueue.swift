@@ -1,12 +1,14 @@
 
-import Combine
 import Foundation
 
 public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyProvider> {
 
+    public typealias LocalChange = DependencyProvider.LocalChange
+    public typealias RemoteChange = DependencyProvider.RemoteChange
+
     // MARK: - Private properties
 
-    private let dependencyProvider: DependencyProviderProxy<DependencyProvider>
+    private let storeInterface: DataStoreInterface<DependencyProvider>
 
     private var monitors: [SynchronizationMonitor] = []
 
@@ -16,37 +18,37 @@ public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyP
     // MARK: - Life Cycle
 
     public init(dependencyProvider: DependencyProvider) {
-        self.dependencyProvider = DependencyProviderProxy(dependencyProvider)
-        self.dependencyProvider.makeChangeStore().changeUpdateHandler = { [ weak self] count in
+        self.storeInterface = DataStoreInterface(dependancyProvider: dependencyProvider)
+        self.storeInterface.changeUpdateHandler = { [ weak self] count in
             self?.notifyMonitors { $0.notifyPendingChangesCountUpdate(count) }
         }
     }
 
     // MARK: - Public methods
 
-    public func perform<Task: DownloadLocalChangesetTask>(_ task: Task,
-                                                         completion: @escaping (Result<Void, Error>) -> Void) where Task.Changeset == DependencyProvider.Changeset {
-        let operation = FetchRemoteChangesOperation(
+    public func perform<Task: DownloadLocalDataChangeTask>(_ task: Task,
+                                                           completion: @escaping (Result<Void, Error>) -> Void) where Task.LocalChange == LocalChange {
+        let operation = DownloadLocalDataChangeOperation(
             task: task,
-            dependencyProvider: dependencyProvider
+            storeInterface: storeInterface
         )
         schedule(operation, completion: completion)
     }
 
-    public func perform<Task: UploadChangesTask>(_ task: Task,
-                                                 completion: @escaping (Result<Void, Error>) -> Void) where Task.Change == DependencyProvider.Changeset.Change {
-        let operation = UploadPendingChangeOperation(
+    public func perform<Task: UploadRemoteDataChangeTask>(_ task: Task,
+                                                          completion: @escaping (Result<Void, Error>) -> Void) where Task.RemoteChange == RemoteChange {
+        let operation = UploadRemoteDataChangeOperation(
             task: task,
-            dependencyProvider: dependencyProvider
+            storeInterface: storeInterface
         )
         schedule(operation, completion: completion)
     }
 
-    public func perform<Task: ScheduleLocalChangesetTask>(_ task: Task,
-                                                     completion: @escaping (Result<Void, Error>) -> Void) where Task.Changeset == DependencyProvider.Changeset {
-        let operation = InsertChangesetOperation(
+    public func perform<Task: InsertLocalDataChangeTask>(_ task: Task,
+                                                         completion: @escaping (Result<Void, Error>) -> Void) where Task.LocalChange == LocalChange {
+        let operation = InsertLocalDataChangeOperation(
             task: task,
-            dependencyProvider: dependencyProvider
+            storeInterface: storeInterface
         )
         schedule(operation, completion: completion)
     }

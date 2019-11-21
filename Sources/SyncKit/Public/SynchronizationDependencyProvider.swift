@@ -1,12 +1,15 @@
 
 public protocol SynchronizationDependencyProvider {
 
-    associatedtype Changeset
-    associatedtype ConflictResolver: ChangesetConflictResolver where ConflictResolver.Changeset == Changeset
-    associatedtype ChangeStore: PendingChangeStore where ChangeStore.Change == Changeset.Change
-    associatedtype PersistentStore: LocalPersistentStore where PersistentStore.Changeset == Changeset
+    associatedtype RemoteChange
+    associatedtype LocalChange
+    associatedtype ConflictResolver: DataChangeConflictResolver where ConflictResolver.RemoteChange == RemoteChange, ConflictResolver.LocalChange == LocalChange
+    associatedtype ChangeConverter: DataChangeConverter where ChangeConverter.RemoteChange == RemoteChange, ChangeConverter.LocalChange == LocalChange
+    associatedtype ChangeStore: RemoteDataChangeStore where ChangeStore.RemoteChange == RemoteChange
+    associatedtype LocalStore: LocalDataStore where LocalStore.DataChange == LocalChange
 
     func makeConflictResolver() -> ConflictResolver
-    func makeChangeStore() -> ChangeStore
-    func makePersistentStore() -> PersistentStore
+    func makeChangeConverter() -> ChangeConverter
+    func makeRemoteDataChangeStore() -> ChangeStore
+    func makeLocalDataStore() -> LocalStore
 }

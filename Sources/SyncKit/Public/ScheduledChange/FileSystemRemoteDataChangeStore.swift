@@ -1,7 +1,7 @@
 
 import Foundation
 
-public class FileSystemPendingChangeStore<Change: PendingChange>: PendingChangeStore where Change: Codable {
+public class FileSystemRemoteDataChangeStore<RemoteChange: RemoteDataChange>: RemoteDataChangeStore where RemoteChange: Codable {
 
     // MARK: - Public properties
 
@@ -31,21 +31,21 @@ public class FileSystemPendingChangeStore<Change: PendingChange>: PendingChangeS
 
     // MARK: - ScheduledChangeStore
 
-    public func storedChanges() -> [Change] {
-        changeDictionary.allValues(Change.self)
+    public func storedChanges() -> [RemoteChange] {
+        changeDictionary.allValues(RemoteChange.self)
     }
 
     public func changesCount() -> Int {
         return changeDictionary.count()
     }
 
-    public func store(_ changes: [Change]) {
+    public func store(_ changes: [RemoteChange]) {
         changes.forEach {
             changeDictionary[$0.storeIdentifier] = $0
         }
     }
 
-    public func purge(_ changes: [Change]) {
+    public func purge(_ changes: [RemoteChange]) {
         changes.forEach {
             changeDictionary.removeValue(forKey: $0.storeIdentifier)
         }
