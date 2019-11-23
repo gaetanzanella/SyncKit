@@ -27,7 +27,7 @@ public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyP
     // MARK: - Public methods
 
     public func perform<Task: DownloadLocalDataChangeTask>(_ task: Task,
-                                                           completion: @escaping (Result<Void, Error>) -> Void) where Task.LocalChange == LocalChange {
+                                                           completion: ((Result<Void, Error>) -> Void)? = nil) where Task.Change == LocalChange {
         let operation = DownloadLocalDataChangeOperation(
             task: task,
             storeInterface: storeInterface
@@ -36,7 +36,7 @@ public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyP
     }
 
     public func perform<Task: UploadRemoteDataChangeTask>(_ task: Task,
-                                                          completion: @escaping (Result<Void, Error>) -> Void) where Task.RemoteChange == RemoteChange {
+                                                          completion: ((Result<Void, Error>) -> Void)? = nil) where Task.Change == RemoteChange {
         let operation = UploadRemoteDataChangeOperation(
             task: task,
             storeInterface: storeInterface
@@ -45,7 +45,7 @@ public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyP
     }
 
     public func perform<Task: InsertLocalDataChangeTask>(_ task: Task,
-                                                         completion: @escaping (Result<Void, Error>) -> Void) where Task.LocalChange == LocalChange {
+                                                         completion: ((Result<Void, Error>) -> Void)? = nil) where Task.Change == LocalChange {
         let operation = InsertLocalDataChangeOperation(
             task: task,
             storeInterface: storeInterface
@@ -60,7 +60,7 @@ public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyP
     // MARK: - Private
 
     private func schedule(_ operation: SynchronizationOperation,
-                          completion: @escaping (Result<Void, Error>) -> Void) {
+                          completion: ((Result<Void, Error>) -> Void)? = nil) {
         let label = operation.label
         operation.startBlock = { [weak self] in
             switch label {
@@ -73,7 +73,7 @@ public class SynchronizationQueue<DependencyProvider: SynchronizationDependencyP
             }
         }
         operation.finishBlock = { [weak self] error in
-            completion(error.flatMap { .failure($0) } ?? .success(()))
+            completion?(error.flatMap { .failure($0) } ?? .success(()))
             guard let error = error else { return }
             switch label {
             case .download, .upload:

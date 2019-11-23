@@ -8,7 +8,7 @@ protocol InsertLocalDataChangeStoreInterface {
     func insert(_ localChange: LocalChange) throws
 }
 
-class InsertLocalDataChangeOperation<Task: InsertLocalDataChangeTask, StoreInterface: InsertLocalDataChangeStoreInterface>: SynchronizationOperation where Task.LocalChange == StoreInterface.LocalChange {
+class InsertLocalDataChangeOperation<Task: InsertLocalDataChangeTask, StoreInterface: InsertLocalDataChangeStoreInterface>: SynchronizationOperation where Task.Change == StoreInterface.LocalChange {
 
     private let task: Task
     private let storeInterface: StoreInterface
@@ -35,7 +35,7 @@ extension InsertLocalDataChangeOperation: LocalDataChangeInsertionContext {
 
     // MARK: - InsertChangesetTaskContext
 
-    func didInsert(_ localChange: Task.LocalChange) {
+    func didInsert(_ localChange: Task.Change) {
         internalQueue.async { [weak self] in
             do {
                 try self?.storeInterface.insert(localChange)

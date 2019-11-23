@@ -10,7 +10,7 @@ protocol UploadRemoteDataChangeStoreInterface {
     func restoreFailedChanges(_ remoteChanges: [RemoteChange])
 }
 
-class UploadRemoteDataChangeOperation<Task: UploadRemoteDataChangeTask, StoreInterface: UploadRemoteDataChangeStoreInterface>: SynchronizationOperation where Task.RemoteChange == StoreInterface.RemoteChange {
+class UploadRemoteDataChangeOperation<Task: UploadRemoteDataChangeTask, StoreInterface: UploadRemoteDataChangeStoreInterface>: SynchronizationOperation where Task.Change == StoreInterface.RemoteChange {
 
     typealias RemoteChange = StoreInterface.RemoteChange
 

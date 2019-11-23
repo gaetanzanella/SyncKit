@@ -1,16 +1,16 @@
 
 public protocol LocalDataChangeInsertionContext {
 
-    associatedtype LocalChange: LocalDataChange
+    associatedtype Change: LocalDataChange
 
-    func didInsert(_ change: LocalChange)
+    func didInsert(_ change: Change)
     func endTask()
     func endTask(with error: Error)
 }
 
 public protocol InsertLocalDataChangeTask {
 
-    associatedtype LocalChange: LocalDataChange
+    associatedtype Change: LocalDataChange
 
-    func start<C: LocalDataChangeInsertionContext>(using context: C) where C.LocalChange == LocalChange
+    func start<C: LocalDataChangeInsertionContext>(using context: C) where C.Change == Change
 }

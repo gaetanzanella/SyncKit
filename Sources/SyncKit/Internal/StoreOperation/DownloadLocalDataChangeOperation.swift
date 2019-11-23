@@ -8,7 +8,7 @@ protocol DownloadLocalDataChangeStoreInterface {
     func store(_ localChange: LocalChange) throws
 }
 
-class DownloadLocalDataChangeOperation<Task: DownloadLocalDataChangeTask, StoreInterface: DownloadLocalDataChangeStoreInterface>: SynchronizationOperation where Task.LocalChange == StoreInterface.LocalChange {
+class DownloadLocalDataChangeOperation<Task: DownloadLocalDataChangeTask, StoreInterface: DownloadLocalDataChangeStoreInterface>: SynchronizationOperation where Task.Change == StoreInterface.LocalChange {
 
     let task: Task
     let storeInterface: StoreInterface
@@ -36,7 +36,7 @@ extension DownloadLocalDataChangeOperation: LocalDataChangeDownloadingContext {
 
     // MARK: - LocalDataChangeDownloadingContext
 
-    func didDownload(_ change: Task.LocalChange) {
+    func didDownload(_ change: Task.Change) {
         internalQueue.async { [weak self] in
             do {
                 try self?.storeInterface.store(change)

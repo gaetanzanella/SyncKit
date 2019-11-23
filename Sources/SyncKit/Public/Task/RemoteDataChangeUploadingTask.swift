@@ -1,10 +1,10 @@
 
 public protocol RemoteDataChangeUploadingContext {
 
-    associatedtype RemoteChange: RemoteDataChange
+    associatedtype Change: RemoteDataChange
 
-    func pendingRemoteDataChanges() -> [RemoteChange]
-    func didStartUploading(_ remoteChanges: [RemoteChange])
+    func pendingRemoteDataChanges() -> [Change]
+    func didStartUploading(_ remoteChanges: [Change])
     func didFinishUploading()
     func didFinishUploading(with error: Error)
     func endTask()
@@ -13,7 +13,7 @@ public protocol RemoteDataChangeUploadingContext {
 
 public protocol UploadRemoteDataChangeTask {
 
-    associatedtype RemoteChange: RemoteDataChange
+    associatedtype Change: RemoteDataChange
 
-    func start<C: RemoteDataChangeUploadingContext>(using context: C) where C.RemoteChange == RemoteChange
+    func start<C: RemoteDataChangeUploadingContext>(using context: C) where C.Change == Change
 }
