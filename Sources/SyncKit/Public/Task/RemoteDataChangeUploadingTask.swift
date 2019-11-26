@@ -7,8 +7,8 @@ public protocol RemoteDataChangeUploadingContext {
     func didStartUploading(_ remoteChanges: [Change])
     func didFinishUploading()
     func didFinishUploading(with error: Error)
-    func endTask()
-    func endTask(with error: Error)
+    func fulfill()
+    func reject(with error: Error)
 }
 
 public protocol UploadRemoteDataChangeTask {

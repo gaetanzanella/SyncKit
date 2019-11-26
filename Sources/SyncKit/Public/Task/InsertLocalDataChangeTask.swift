@@ -4,8 +4,8 @@ public protocol LocalDataChangeInsertionContext {
     associatedtype Change: LocalDataChange
 
     func didInsert(_ change: Change)
-    func endTask()
-    func endTask(with error: Error)
+    func fulfill()
+    func reject(with error: Error)
 }
 
 public protocol InsertLocalDataChangeTask {

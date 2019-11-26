@@ -44,4 +44,16 @@ extension InsertLocalDataChangeOperation: LocalDataChangeInsertionContext {
             }
         }
     }
+
+    func fulfill() {
+        internalQueue.async { [weak self] in
+            self?.endTask()
+        }
+    }
+
+    func reject(with error: Error) {
+        internalQueue.async { [weak self] in
+            self?.endTask(with: error)
+        }
+    }
 }

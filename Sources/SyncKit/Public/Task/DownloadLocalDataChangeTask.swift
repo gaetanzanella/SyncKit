@@ -4,8 +4,8 @@ public protocol LocalDataChangeDownloadingContext {
     associatedtype Change: LocalDataChange
 
     func didDownload(_ localChange: Change)
-    func endTask()
-    func endTask(with error: Error)
+    func fulfill()
+    func reject(with error: Error)
 }
 
 public protocol DownloadLocalDataChangeTask {

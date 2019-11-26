@@ -28,7 +28,7 @@ class UploadRemoteDataChangeOperation<Task: UploadRemoteDataChangeTask, StoreInt
          storeInterface: StoreInterface) {
         self.task = task
         self.storeInterface = storeInterface
-        super.init(label: .download)
+        super.init(label: .upload)
     }
 
     // MARK: - Operation
@@ -68,6 +68,18 @@ extension UploadRemoteDataChangeOperation: RemoteDataChangeUploadingContext {
             let changes = self._processingChanges
             self._processingChanges = []
             self.storeInterface.restoreFailedChanges(changes)
+        }
+    }
+
+    func fulfill() {
+        internalQueue.async { [weak self] in
+            self?.endTask()
+        }
+    }
+
+    func reject(with error: Error) {
+        internalQueue.async { [weak self] in
+            self?.endTask(with: error)
         }
     }
 }
