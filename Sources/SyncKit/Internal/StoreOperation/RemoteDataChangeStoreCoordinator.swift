@@ -5,7 +5,7 @@ private enum ScheduledChangeStores {
     static let accessQueue = DispatchQueue(label: "change_store_queue", attributes: .concurrent)
 }
 
-class ReadOnlyRemoteDataChangeStore<Store: RemoteDataChangeStore> {
+class ReadOnlyRemoteDataChangeStore<Store: RemoteDataChangeQueue> {
 
     fileprivate let store: Store
 
@@ -14,7 +14,7 @@ class ReadOnlyRemoteDataChangeStore<Store: RemoteDataChangeStore> {
     }
 
     func storedChanges() -> [Store.RemoteChange] {
-        store.storedChanges()
+        store.changes()
     }
 
     func changesCount() -> Int {
@@ -22,18 +22,18 @@ class ReadOnlyRemoteDataChangeStore<Store: RemoteDataChangeStore> {
     }
 }
 
-class ReadAndWriteRemoteDataChangeStore<Store: RemoteDataChangeStore>: ReadOnlyRemoteDataChangeStore<Store> {
+class ReadAndWriteRemoteDataChangeStore<Store: RemoteDataChangeQueue>: ReadOnlyRemoteDataChangeStore<Store> {
 
     func store(_ changes: [Store.RemoteChange]) {
-        store.store(changes)
+        store.add(changes)
     }
 
     func purge(_ changes: [Store.RemoteChange]) {
-        store.purge(changes)
+        store.remove(changes)
     }
 }
 
-class RemoteDataChangeStoreCoordinator<Store: RemoteDataChangeStore> {
+class RemoteDataChangeStoreCoordinator<Store: RemoteDataChangeQueue> {
 
     private let store: Store
 

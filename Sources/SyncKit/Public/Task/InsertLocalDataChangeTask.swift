@@ -1,16 +1,28 @@
 
-public protocol LocalDataChangeInsertionContext {
+public struct LocalDataChangeInsertionContext<Change: LocalDataChange> {
+    let didInsertChangeHandler: (Change) -> Void
+    let fulfillHandler: () -> Void
+    let rejectHandler: (Error) -> Void
+}
 
-    associatedtype Change: LocalDataChange
+public extension LocalDataChangeInsertionContext {
 
-    func didInsert(_ change: Change)
-    func fulfill()
-    func reject(with error: Error)
+    func didInsert(_ change: Change) {
+        didInsertChangeHandler(change)
+    }
+
+    func endTask() {
+        fulfillHandler()
+    }
+
+    func endTask(with error: Error) {
+        rejectHandler(error)
+    }
 }
 
 public protocol InsertLocalDataChangeTask {
 
     associatedtype Change: LocalDataChange
 
-    func start<C: LocalDataChangeInsertionContext>(using context: C) where C.Change == Change
+    func start(using context: LocalDataChangeInsertionContext<Change>)
 }

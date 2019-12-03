@@ -22,12 +22,12 @@ class DataStoreInterface<DependencyProvider: SynchronizationDependencyProvider>:
         dependancyProvider.makeChangeConverter()
     }
 
-    private let storeCoordinator: RemoteDataChangeStoreCoordinator<DependencyProvider.ChangeStore>
+    private let storeCoordinator: RemoteDataChangeStoreCoordinator<DependencyProvider.ChangeQueue>
 
     init(dependancyProvider: DependencyProvider) {
         self.dependancyProvider = dependancyProvider
         self.storeCoordinator = RemoteDataChangeStoreCoordinator(
-            store: dependancyProvider.makeRemoteDataChangeStore()
+            store: dependancyProvider.makeRemoteDataChangeQueue()
         )
     }
 

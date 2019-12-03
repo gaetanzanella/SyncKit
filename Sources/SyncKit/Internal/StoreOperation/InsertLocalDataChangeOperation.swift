@@ -26,14 +26,22 @@ class InsertLocalDataChangeOperation<Task: InsertLocalDataChangeTask, StoreInter
 
     override func startTask() {
         internalQueue.sync {
-            task.start(using: self)
+            let context = LocalDataChangeInsertionContext(
+                didInsertChangeHandler: { [weak self] change in
+                    self?.didInsert(change)
+                },
+                fulfillHandler: { [weak self] in
+                    self?.fulfill()
+                },
+                rejectHandler: { [weak self] error in
+                    self?.reject(with: error)
+                }
+            )
+            task.start(using: context)
         }
     }
-}
 
-extension InsertLocalDataChangeOperation: LocalDataChangeInsertionContext {
-
-    // MARK: - InsertChangesetTaskContext
+    // MARK: - InsertLocalDataChangeOperation
 
     func didInsert(_ localChange: Task.Change) {
         internalQueue.async { [weak self] in

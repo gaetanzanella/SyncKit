@@ -27,14 +27,22 @@ class DownloadLocalDataChangeOperation<Task: DownloadLocalDataChangeTask, StoreI
     override func startTask() {
         internalQueue.sync {
             let task = self.task
-            task.start(using: self)
+            let context = LocalDataChangeDownloadingContext(
+                didDownloadChangeHandler: { [weak self] change in
+                    self?.didDownload(change)
+                },
+                fulfillHandler: { [weak self] in
+                    self?.fulfill()
+                },
+                rejectHandler: { [weak self] error in
+                    self?.reject(with: error)
+                }
+            )
+            task.start(using: context)
         }
     }
-}
 
-extension DownloadLocalDataChangeOperation: LocalDataChangeDownloadingContext {
-
-    // MARK: - LocalDataChangeDownloadingContext
+    // MARK: - DownloadLocalDataChangeOperation
 
     func didDownload(_ change: Task.Change) {
         internalQueue.async { [weak self] in

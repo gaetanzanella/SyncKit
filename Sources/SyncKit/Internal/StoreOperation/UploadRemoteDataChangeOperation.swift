@@ -36,14 +36,31 @@ class UploadRemoteDataChangeOperation<Task: UploadRemoteDataChangeTask, StoreInt
     override func startTask() {
         internalQueue.sync {
             _pendingChanges = storeInterface.pendingChanges()
-            task.start(using: self)
+            let context = RemoteDataChangeUploadingContext(
+                pendingRemoteDataChangesHandler: { [weak self] in
+                    self?._pendingChanges ?? []
+                },
+                didStartUploadingHandler: { [weak self] changes in
+                    self?.didStartUploading(changes)
+                },
+                didFinishUploadingHandler: { [weak self] in
+                    self?.didFinishUploading()
+                },
+                didFinishUploadingWithErrorHandler: { [weak self] error in
+                    self?.didFinishUploading(with: error)
+                },
+                fulfillHandler: { [weak self] in
+                    self?.fulfill()
+                },
+                rejectHandler: { [weak self] error in
+                    self?.reject(with: error)
+                }
+            )
+            task.start(using: context)
         }
     }
-}
 
-extension UploadRemoteDataChangeOperation: RemoteDataChangeUploadingContext {
-
-    // MARK: - RemoteDataChangeUploadingContext
+    // MARK: - UploadRemoteDataChangeOperation
 
     func pendingRemoteDataChanges() -> [RemoteChange] {
         return _pendingChanges

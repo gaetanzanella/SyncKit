@@ -1,7 +1,7 @@
 
 import Foundation
 
-public class FileSystemRemoteDataChangeStore<RemoteChange: RemoteDataChange>: RemoteDataChangeStore where RemoteChange: Codable {
+public class FileSystemRemoteDataChangeQueue<RemoteChange: RemoteDataChange>: RemoteDataChangeQueue where RemoteChange: Codable {
 
     // MARK: - Public properties
 
@@ -31,7 +31,7 @@ public class FileSystemRemoteDataChangeStore<RemoteChange: RemoteDataChange>: Re
 
     // MARK: - ScheduledChangeStore
 
-    public func storedChanges() -> [RemoteChange] {
+    public func changes() -> [RemoteChange] {
         changeDictionary.allValues(RemoteChange.self)
     }
 
@@ -39,13 +39,13 @@ public class FileSystemRemoteDataChangeStore<RemoteChange: RemoteDataChange>: Re
         return changeDictionary.count()
     }
 
-    public func store(_ changes: [RemoteChange]) {
+    public func add(_ changes: [RemoteChange]) {
         changes.forEach {
             changeDictionary[$0.storeIdentifier] = $0
         }
     }
 
-    public func purge(_ changes: [RemoteChange]) {
+    public func remove(_ changes: [RemoteChange]) {
         changes.forEach {
             changeDictionary.removeValue(forKey: $0.storeIdentifier)
         }

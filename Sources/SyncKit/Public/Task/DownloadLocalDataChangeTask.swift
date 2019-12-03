@@ -1,16 +1,28 @@
 
-public protocol LocalDataChangeDownloadingContext {
+public struct LocalDataChangeDownloadingContext<Change: LocalDataChange> {
+    let didDownloadChangeHandler: (Change) -> Void
+    let fulfillHandler: () -> Void
+    let rejectHandler: (Error) -> Void
+}
 
-    associatedtype Change: LocalDataChange
+public extension LocalDataChangeDownloadingContext {
 
-    func didDownload(_ localChange: Change)
-    func fulfill()
-    func reject(with error: Error)
+    func didDownload(_ localChange: Change) {
+        didDownloadChangeHandler(localChange)
+    }
+
+    func endTask() {
+        fulfillHandler()
+    }
+
+    func endTask(with error: Error) {
+        rejectHandler(error)
+    }
 }
 
 public protocol DownloadLocalDataChangeTask {
 
     associatedtype Change: LocalDataChange
 
-    func start<C: LocalDataChangeDownloadingContext>(using context: C) where C.Change == Change
+    func start(using context: LocalDataChangeDownloadingContext<Change>)
 }
