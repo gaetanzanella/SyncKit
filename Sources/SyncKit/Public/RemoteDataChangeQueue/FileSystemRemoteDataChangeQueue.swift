@@ -1,53 +1,68 @@
 
 import Foundation
 
-public class FileSystemRemoteDataChangeQueue<RemoteChange: RemoteDataChange>: RemoteDataChangeQueue where RemoteChange: Codable {
+public class FileSystemRemoteDataChangeQueue<RemoteChange: RemoteDataChange>: RemoteDataChangeQueue where RemoteChange: Codable, RemoteChange.ID: CustomStringConvertible {
 
     // MARK: - Public properties
 
     var folder: URL {
-        changeDictionary.folderUrl
+        pendingDictionary.folderUrl
     }
 
     // MARK: - Private properties
 
-    private let changeDictionary: FileSystemDictionary
+    private let pendingDictionary: FileSystemDictionary
+    private let processingDictionary: FileSystemDictionary
 
     // MARK: - Life Cycle
 
     public init(fileManager: FileManager = .default,
                 folder: URL) {
-        self.changeDictionary = FileSystemDictionary(
+        self.pendingDictionary = FileSystemDictionary(
             fileManager: fileManager,
-            folderURL: folder.appendingPathComponent("ScheduledChange")
+            folderURL: folder.appendingPathComponent("Pending")
+        )
+        self.processingDictionary = FileSystemDictionary(
+            fileManager: fileManager,
+            folderURL: folder.appendingPathComponent("Processing")
         )
     }
 
-    // MARK: - Public
+    // MARK: - FileSystemRemoteDataChangeQueue
 
-    func purgeAllChanges() {
-        changeDictionary.deleteAll()
+    public func changesCount(in state: RemoteDataChangeState) -> Int {
+        dictionary(for: state).count()
     }
 
-    // MARK: - ScheduledChangeStore
-
-    public func changes() -> [RemoteChange] {
-        changeDictionary.allValues(RemoteChange.self)
+    public func changes(in state: RemoteDataChangeState) -> [RemoteChange] {
+        dictionary(for: state).allValues(RemoteChange.self)
     }
 
-    public func changesCount() -> Int {
-        return changeDictionary.count()
-    }
-
-    public func add(_ changes: [RemoteChange]) {
+    public func add(_ changes: [RemoteChange], for state: RemoteDataChangeState) {
         changes.forEach {
-            changeDictionary[$0.storeIdentifier] = $0
+            dictionary(for: state)[String(describing: $0.id)] = $0
         }
     }
 
-    public func remove(_ changes: [RemoteChange]) {
+    public func remove(_ changes: [RemoteChange], for state: RemoteDataChangeState) {
         changes.forEach {
-            changeDictionary.removeValue(forKey: $0.storeIdentifier)
+            dictionary(for: state).removeValue(forKey: String(describing: $0.id))
+        }
+    }
+
+    public func purgeAllChanges() {
+        pendingDictionary.deleteAll()
+        processingDictionary.deleteAll()
+    }
+
+    // MARK: - Private
+
+    private func dictionary(for state: RemoteDataChangeState) -> FileSystemDictionary {
+        switch state {
+        case .pending:
+            return pendingDictionary
+        case .processing:
+            return processingDictionary
         }
     }
 }

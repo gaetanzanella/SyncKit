@@ -36,27 +36,34 @@ class DataStoreInterface<DependencyProvider: SynchronizationDependencyProvider>:
     func pendingChanges() -> [RemoteChange] {
         var changes: [RemoteChange] = []
         storeCoordinator.coordinateReading { store in
-            changes = store.storedChanges()
+            changes = store.pendingStoredChanges()
         }
         return changes
     }
 
+    func purgeUploadingChanges(_ remoteChanges: [DependencyProvider.RemoteChange]) {
+        storeCoordinator.coordinateWriting { changeStore in
+            changeStore.moveProcessing(remoteChanges)
+        }
+        notifyCountChange()
+    }
+
     func purgeUploadedChanges(_ remoteChanges: [RemoteChange]) {
         storeCoordinator.coordinateWriting { changeStore in
-            changeStore.purge(remoteChanges)
+            changeStore.purgeProcessing(remoteChanges)
         }
         notifyCountChange()
     }
 
     func restoreFailedChanges(_ remoteChanges: [RemoteChange]) {
         storeCoordinator.coordinateWriting { changeStore in
-            changeStore.purge(remoteChanges)
-            let conflict = RemoteDataChangeUploadingFailureConflit(
+            changeStore.purgeProcessing(remoteChanges)
+            let conflict = UploadingFailureConflit(
                 failedChanges: remoteChanges,
-                pendingChanges: changeStore.storedChanges()
+                pendingChanges: changeStore.pendingStoredChanges()
             )
             let solution = resolver.resolve(conflict)
-            changeStore.store(solution.changesToRestore)
+            changeStore.addPending(solution.changesToRestore)
         }
         notifyCountChange()
     }
@@ -65,13 +72,13 @@ class DataStoreInterface<DependencyProvider: SynchronizationDependencyProvider>:
 
     func store(_ localChange: LocalChange) throws {
         try storeCoordinator.coordinateWriting { changeStore in
-            let conflict = LocalDataChangeDownloadingConflit(
+            let conflict = DownloadingConflit(
                 newChange: localChange,
-                pendingChanges: changeStore.storedChanges()
+                pendingChanges: changeStore.pendingStoredChanges()
             )
             let solution = self.resolver.resolve(conflict)
             try self.localStore.perform(solution.newChangeToPersist)
-            changeStore.purge(solution.pendingChangesToCancel)
+            changeStore.purgePending(solution.pendingChangesToCancel)
         }
         notifyCountChange()
     }
@@ -81,13 +88,14 @@ class DataStoreInterface<DependencyProvider: SynchronizationDependencyProvider>:
     func insert(_ localChange: DependencyProvider.LocalChange) throws {
         let remoteChanges = converter.remoteChanges(from: localChange)
         try storeCoordinator.coordinateWriting { changeStore in
-            let conflict = RemoteDataChangeInsertionConflit(
+            let conflict = InsertionConflit(
                 insertedChanges: remoteChanges,
-                pendingChanges: changeStore.storedChanges()
+                pendingChanges: changeStore.pendingStoredChanges()
             )
             let solution = self.resolver.resolve(conflict)
             try self.localStore.perform(localChange)
-            changeStore.purge(solution.pendingChangesToCancel)
+            changeStore.purgePending(solution.pendingChangesToCancel)
+            changeStore.addPending(remoteChanges)
         }
         notifyCountChange()
     }
@@ -97,7 +105,7 @@ class DataStoreInterface<DependencyProvider: SynchronizationDependencyProvider>:
     private func notifyCountChange() {
         var count = 0
         storeCoordinator.coordinateReading { store in
-            count = store.changesCount()
+            count = store.pendingChangesCount()
         }
         changeUpdateHandler?(count)
     }

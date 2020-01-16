@@ -1,5 +1,5 @@
 
-public struct RemoteDataChangeInsertionConflit<RemoteChange: RemoteDataChange> {
+public struct InsertionConflit<RemoteChange: RemoteDataChange> {
 
     public let insertedChanges: [RemoteChange]
     public let pendingChanges: [RemoteChange]
@@ -11,7 +11,7 @@ public struct RemoteDataChangeInsertionConflit<RemoteChange: RemoteDataChange> {
     }
 }
 
-public struct RemoteDataChangeInsertionConflitSolution<RemoteChange: RemoteDataChange> {
+public struct InsertionConflitSolution<RemoteChange: RemoteDataChange> {
 
     public let pendingChangesToCancel: [RemoteChange]
 
@@ -20,7 +20,7 @@ public struct RemoteDataChangeInsertionConflitSolution<RemoteChange: RemoteDataC
     }
 }
 
-public struct RemoteDataChangeUploadingFailureConflit<RemoteChange: RemoteDataChange> {
+public struct UploadingFailureConflit<RemoteChange: RemoteDataChange> {
 
     public let failedChanges: [RemoteChange]
     public let pendingChanges: [RemoteChange]
@@ -32,7 +32,7 @@ public struct RemoteDataChangeUploadingFailureConflit<RemoteChange: RemoteDataCh
     }
 }
 
-public struct RemoteDataChangeUploadingFailureConflitSolution<RemoteChange: RemoteDataChange> {
+public struct UploadingFailureConflitSolution<RemoteChange: RemoteDataChange> {
 
     public let changesToRestore: [RemoteChange]
 
@@ -41,7 +41,7 @@ public struct RemoteDataChangeUploadingFailureConflitSolution<RemoteChange: Remo
     }
 }
 
-public struct LocalDataChangeDownloadingConflit<LocalChange: LocalDataChange, RemoteChange: RemoteDataChange> {
+public struct DownloadingConflit<LocalChange: LocalDataChange, RemoteChange: RemoteDataChange> {
 
     public let newChange: LocalChange
     public let pendingChanges: [RemoteChange]
@@ -53,7 +53,7 @@ public struct LocalDataChangeDownloadingConflit<LocalChange: LocalDataChange, Re
     }
 }
 
-public struct LocalDataChangeDownloadingConflitSolution<LocalChange: LocalDataChange, RemoteChange: RemoteDataChange> {
+public struct DownloadingConflitSolution<LocalChange: LocalDataChange, RemoteChange: RemoteDataChange> {
 
     public let newChangeToPersist: LocalChange
     public let pendingChangesToCancel: [RemoteChange]
@@ -71,9 +71,9 @@ public protocol DataChangeConflictResolver {
     associatedtype RemoteChange: RemoteDataChange
 
     /// When a new pending change is created, which pending changes to cancel?
-    func resolve(_ conflit: RemoteDataChangeInsertionConflit<RemoteChange>) -> RemoteDataChangeInsertionConflitSolution<RemoteChange>
+    func resolve(_ conflit: InsertionConflit<RemoteChange>) -> InsertionConflitSolution<RemoteChange>
     /// When pending changes failed, which ones are still valid?
-    func resolve(_ conflit: RemoteDataChangeUploadingFailureConflit<RemoteChange>) -> RemoteDataChangeUploadingFailureConflitSolution<RemoteChange>
+    func resolve(_ conflit: UploadingFailureConflit<RemoteChange>) -> UploadingFailureConflitSolution<RemoteChange>
     /// When new changes are fetched, which pending changes to keep? which fetched changes to persist?
-    func resolve(_ conflit: LocalDataChangeDownloadingConflit<LocalChange, RemoteChange>) -> LocalDataChangeDownloadingConflitSolution<LocalChange, RemoteChange>
+    func resolve(_ conflit: DownloadingConflit<LocalChange, RemoteChange>) -> DownloadingConflitSolution<LocalChange, RemoteChange>
 }

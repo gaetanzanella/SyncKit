@@ -13,23 +13,32 @@ class ReadOnlyRemoteDataChangeStore<Store: RemoteDataChangeQueue> {
         self.store = store
     }
 
-    func storedChanges() -> [Store.RemoteChange] {
-        store.changes()
+    func pendingStoredChanges() -> [Store.RemoteChange] {
+        store.changes(in: .pending)
     }
 
-    func changesCount() -> Int {
-        store.changesCount()
+    func pendingChangesCount() -> Int {
+        store.changesCount(in: .pending)
     }
 }
 
 class ReadAndWriteRemoteDataChangeStore<Store: RemoteDataChangeQueue>: ReadOnlyRemoteDataChangeStore<Store> {
 
-    func store(_ changes: [Store.RemoteChange]) {
-        store.add(changes)
+    func moveProcessing(_ changes: [Store.RemoteChange]) {
+        store.remove(changes, for: .pending)
+        store.add(changes, for: .processing)
     }
 
-    func purge(_ changes: [Store.RemoteChange]) {
-        store.remove(changes)
+    func addPending(_ changes: [Store.RemoteChange]) {
+        store.add(changes, for: .pending)
+    }
+
+    func purgeProcessing(_ changes: [Store.RemoteChange]) {
+        store.remove(changes, for: .processing)
+    }
+
+    func purgePending(_ changes: [Store.RemoteChange]) {
+        store.remove(changes, for: .pending)
     }
 }
 

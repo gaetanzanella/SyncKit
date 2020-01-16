@@ -6,6 +6,7 @@ protocol UploadRemoteDataChangeStoreInterface {
     associatedtype RemoteChange: RemoteDataChange
 
     func pendingChanges() -> [RemoteChange]
+    func purgeUploadingChanges(_ remoteChanges: [RemoteChange])
     func purgeUploadedChanges(_ remoteChanges: [RemoteChange])
     func restoreFailedChanges(_ remoteChanges: [RemoteChange])
 }
@@ -69,13 +70,16 @@ class UploadRemoteDataChangeOperation<Task: UploadRemoteDataChangeTask, StoreInt
     func didStartUploading(_ remoteChanges: [RemoteChange]) {
         internalQueue.async { [weak self] in
             self?._processingChanges = remoteChanges
-            self?.storeInterface.purgeUploadedChanges(remoteChanges)
+            self?.storeInterface.purgeUploadingChanges(remoteChanges)
         }
     }
 
     func didFinishUploading() {
         internalQueue.async { [weak self] in
-            self?._processingChanges = []
+            guard let self = self else { return }
+            let changes = self._processingChanges
+            self._processingChanges = []
+            self.storeInterface.purgeUploadedChanges(changes)
         }
     }
 
